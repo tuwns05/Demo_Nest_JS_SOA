@@ -1,71 +1,48 @@
 import { All, Controller, Get, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { HttpService } from '@nestjs/axios';
 import { AppService } from './app.service.js';
+import type { AuthenticatedRequest } from './auth.guard.js';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
+    private readonly http: HttpService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get('health')
-  getHealth() {
-    return this.appService.getHealth();
+  async getHealth(@Res() response: Response) {
+    const health = await this.appService.getHealth();
+    return response.status(health.status === 'ok' ? 200 : 503).json(health);
   }
 
-  @All(['*'])
-  async proxy(@Req() request: Request, @Res() response: Response) {
-    const requestPath = request.originalUrl || request.url;
-    if (requestPath === '/health') {
-      return response.status(200).json(await this.appService.getHealth());
+  @All('{*path}')
+  async proxy(@Req() request: AuthenticatedRequest, @Res() response: Response) {
+    const resource = request.path.split('/')[1];
+    if (!['auth', 'sinhvien', 'detai', 'dangky'].includes(resource)) {
+      return response.status(404).json({ statusCode: 404, message: `Unknown service route: ${resource}` });
     }
-
-    const serviceMap = {
-      auth: this.configService.get<string>('SERVICE_URL_AUTH', 'http://localhost:3004'),
-      sinhvien: this.configService.get<string>('SERVICE_URL_SINHVIEN', 'http://localhost:3001'),
-      detai: this.configService.get<string>('SERVICE_URL_DETAI', 'http://localhost:3002'),
-      dangky: this.configService.get<string>('SERVICE_URL_DANGKY', 'http://localhost:3003'),
-    } as const;
-
-    const path = requestPath.replace(/^\/+/, '');
-    const [resource, ...rest] = path.split('/');
-    const baseUrl = serviceMap[resource as keyof typeof serviceMap];
-
-    if (!baseUrl) {
-      return response.status(404).json({
-        statusCode: 404,
-        message: `Unknown service route: ${resource}`,
-        error: 'Not Found',
-      });
+    const base = this.config.getOrThrow<string>(`SERVICE_URL_${resource.toUpperCase()}`);
+    const targetUrl = `${base.replace(/\/$/, '')}${request.originalUrl}`;
+    delete request.headers['x-user-id'];
+    const headers: Record<string, string> = {};
+    for (const name of ['content-type', 'accept', 'authorization']) {
+      const value = request.headers[name];
+      if (typeof value === 'string') headers[name] = value;
     }
-
-    const routePath = rest.length > 0 ? `${resource}/${rest.join('/')}` : resource;
-    const targetUrl = new URL(`${baseUrl}/${routePath}`);
-    const headers = { ...request.headers };
-    delete headers.host;
-
+    if (request.user) headers['x-user-id'] = String(request.user.sub);
     try {
-      const axiosResponse = await this.httpService.axiosRef.request({
-        url: targetUrl.toString(),
-        method: request.method as any,
-        headers,
-        data: ['GET', 'DELETE'].includes(request.method) ? undefined : request.body,
-        timeout: 5000,
+      const upstream = await this.http.axiosRef.request({
+        url: targetUrl, method: request.method, headers,
+        data: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
+        timeout: 5000, maxRedirects: 0, validateStatus: () => true,
       });
-
-      return response.status(axiosResponse.status).json(axiosResponse.data);
-    } catch (error: any) {
-      const status = error.response?.status ?? 503;
-      const payload = error.response?.data ?? {
-        statusCode: 503,
-        message: 'Service unavailable',
-        error: 'Service Unavailable',
-      };
-      return response.status(status).json(payload);
+      return response.status(upstream.status).send(upstream.data);
+    } catch {
+      return response.status(503).json({ statusCode: 503, message: 'Dịch vụ tạm thời không khả dụng' });
     }
   }
 }

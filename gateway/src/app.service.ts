@@ -1,36 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly httpService: HttpService) {}
-
-  async getHealth(): Promise<Record<string, any>> {
-    const urls = {
-      auth: `${process.env.SERVICE_URL_AUTH ?? 'http://localhost:3004'}/auth/health`,
-      sinhvien: `${process.env.SERVICE_URL_SINHVIEN ?? 'http://localhost:3001'}/sinhvien/health`,
-      detai: `${process.env.SERVICE_URL_DETAI ?? 'http://localhost:3002'}/detai/health`,
-      dangky: `${process.env.SERVICE_URL_DANGKY ?? 'http://localhost:3003'}/dangky/health`,
-    };
-
-    const services: Record<string, string> = {};
-    for (const [name, url] of Object.entries(urls)) {
+  constructor(private readonly http: HttpService, private readonly config: ConfigService) {}
+  async getHealth() {
+    const entries = await Promise.all(['auth', 'sinhvien', 'detai', 'dangky'].map(async name => {
       try {
-        const response = await firstValueFrom(
-          this.httpService.get(url, { timeout: 5000 }),
-        );
-        services[name] = response.status === 200 ? 'up' : 'down';
+        const base = this.config.getOrThrow<string>(`SERVICE_URL_${name.toUpperCase()}`);
+        const response = await this.http.axiosRef.get(`${base.replace(/\/$/, '')}/${name}/health`, {
+          timeout: 2000, maxRedirects: 0,
+        });
+        return [name, response.status === 200 ? 'up' : 'down'] as const;
       } catch {
-        services[name] = 'down';
+        return [name, 'down'] as const;
       }
-    }
-
+    }));
     return {
-      status: 'ok',
-      gateway: 'up',
-      services,
-      timestamp: new Date().toISOString(),
+      status: entries.every(([, state]) => state === 'up') ? 'ok' : 'degraded',
+      gateway: 'up', services: Object.fromEntries(entries), timestamp: new Date().toISOString(),
     };
   }
 }

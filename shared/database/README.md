@@ -2,6 +2,8 @@
 
 `@soa/database` được dùng qua `file:../shared/database`. API: `DatabaseModule.register()` và `DatabaseService.query(sql, params)`. Package chỉ chứa hạ tầng, không có nghiệp vụ.
 
+Mã nguồn TypeScript nằm ở `src/index.ts`, build ra `dist/index.js` và `dist/index.d.ts`. Chạy `npm.cmd install` tại đây để hook prepare build package, hoặc `npm.cmd run build` sau khi sửa mã. Script `scripts/install-all.ps1` cài package này trước service để clone mới vẫn chạy được. Provider chỉ đăng ký một lần trong DynamicModule.
+
 | Biến | Ý nghĩa |
 | --- | --- |
 | DB_HOST, DB_NAME | Bắt buộc, không có giá trị mặc định |

@@ -1,16 +1,13 @@
-﻿$services = @(
-  @{ Name = 'svc-auth'; Port = 3004 },
-  @{ Name = 'svc-sinhvien'; Port = 3001 },
-  @{ Name = 'svc-detai'; Port = 3002 },
-  @{ Name = 'svc-dangky'; Port = 3003 }
-)
-
-foreach ($service in $services) {
-  $path = Join-Path (Get-Location) $service.Name
-  Write-Host "Starting $($service.Name) on port $($service.Port)"
-  Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$path'; npm.cmd run start:dev"
+﻿$ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$names = @('svc-auth', 'svc-sinhvien', 'svc-detai', 'svc-dangky', 'gateway')
+$requiredFiles = @('.env') + @($names | ForEach-Object { "$_/.env" })
+$missing = @($requiredFiles | Where-Object { -not (Test-Path -LiteralPath (Join-Path $repoRoot $_) -PathType Leaf) })
+if ($missing.Count -gt 0) {
+  throw "Thiếu tệp cấu hình: $($missing -join ', '). Sao chép .env.example tương ứng thành .env và điền cấu hình trước khi chạy."
 }
-
-$gatewayPath = Join-Path (Get-Location) 'gateway'
-Write-Host "Starting gateway on port 3000"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$gatewayPath'; npm.cmd run start:dev"
+foreach ($name in $names) {
+  $servicePath = (Join-Path $repoRoot $name).Replace("'", "''")
+  Write-Host "Khởi động $name; cổng đọc từ cấu hình PORT của service."
+  Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoExit', '-Command', "Set-Location -LiteralPath '$servicePath'; npm.cmd run start:dev"
+}

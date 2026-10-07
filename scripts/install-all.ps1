@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 # Package chung phải được build trước các service dùng file:../shared/database.
 foreach ($name in @('shared/database', 'gateway', 'svc-auth', 'svc-sinhvien', 'svc-detai', 'svc-dangky')) {

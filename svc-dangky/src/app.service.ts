@@ -1,8 +1,23 @@
 import { Injectable } from '@nestjs/common';
+import { DatabaseService } from '@soa/database';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+  constructor(private readonly databaseService: DatabaseService) {}
+
+  async getHealth(): Promise<{ status: string; service: string; message?: string }> {
+    try {
+      await this.databaseService.query('SELECT 1 AS result');
+      return {
+        status: 'ok',
+        service: 'dangky',
+      };
+    } catch (error) {
+      return {
+        status: 'down',
+        service: 'dangky',
+        message: error instanceof Error ? error.message : 'database unavailable',
+      };
+    }
   }
 }

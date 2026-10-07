@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from '@soa/database';
+import { HttpModule } from '@nestjs/axios';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 
@@ -10,7 +10,7 @@ import { AppService } from './app.service.js';
       isGlobal: true,
       envFilePath: ['.env', '../.env'],
     }),
-    DatabaseModule.register(),
+    HttpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

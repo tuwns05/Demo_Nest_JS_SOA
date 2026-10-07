@@ -1,27 +1,37 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service.js';
-import { AuthController } from './auth.controller.js';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
+import { AuthService } from './auth.service.js';
+import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
-
-export const jwtContants = {
-  secret: '1b06cf8b17730a7a8c4e279c3eea613557e3cb5adecda9ee6e96107902dc6000',
-};
 
 @Module({
   imports: [
-    JwtModule.register({
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '../.env'],
+    }),
+    JwtModule.registerAsync({
       global: true,
-      secret: jwtContants.secret,
-      signOptions: { expiresIn: '60s' }
-    })
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN', '15m') ?? '15m') as any,
+        },
+      }),
+    }),
   ],
-  providers: [AuthService, {
-    provide: APP_GUARD,
-    useClass: AuthGuard,
-  },],
+  providers: [
+    AuthService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+  ],
   controllers: [AuthController],
-  exports: [AuthService]
+  exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

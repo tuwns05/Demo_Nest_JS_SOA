@@ -1,10 +1,4 @@
-import {
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { ExceptionFilter, HttpException, HttpStatus, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 
@@ -14,14 +8,12 @@ class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse();
     const request = ctx.getRequest();
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const payload = {
       statusCode: status,
       message:
         status === HttpStatus.INTERNAL_SERVER_ERROR
-          ? 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'
+          ? 'Gateway xử lý lỗi hệ thống.'
           : exception instanceof HttpException
             ? exception.getResponse()
             : 'Lỗi không xác định',
@@ -31,7 +23,7 @@ class HttpExceptionFilter implements ExceptionFilter {
     };
 
     if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
-      Logger.error(payload, 'HttpExceptionFilter');
+      Logger.error(payload, 'GatewayExceptionFilter');
     }
 
     response.status(status).json(payload);
@@ -41,7 +33,6 @@ class HttpExceptionFilter implements ExceptionFilter {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
-  app.setGlobalPrefix('sinhvien');
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -50,7 +41,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(process.env.PORT ?? 3000);
 }
 
 await bootstrap();

@@ -4,17 +4,43 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sql = require('mssql/msnodesqlv8');
 
+function getDriver() {
+  return process.env.DB_ODBC_DRIVER ?? 'ODBC Driver 17 for SQL Server';
+}
+
 function createConnectionString() {
   if (process.env.DB_CONNECTION_STRING) {
     return process.env.DB_CONNECTION_STRING;
   }
 
-  const host = process.env.DB_HOST ?? 'LAPTOP-TUNWS';
-  const database = process.env.DB_NAME ?? 'SOA_BTH';
-  const instance = process.env.DB_INSTANCE ?? 'VIETTUAN';
-  const driver = process.env.DB_ODBC_DRIVER ?? 'ODBC Driver 17 for SQL Server';
+  const host = process.env.DB_HOST ?? 'localhost';
+  const database = process.env.DB_NAME ?? 'SOA_DATN';
+  const driver = getDriver();
 
-  return `Driver={${driver}};Server=${host}\\${instance};Database=${database};Trusted_Connection=Yes;Encrypt=Yes;TrustServerCertificate=Yes;`;
+  const useSqlAuth = Boolean(process.env.DB_USER && process.env.DB_PASSWORD);
+
+  if (useSqlAuth) {
+    return [
+      `Driver={${driver}}`,
+      `Server=${host}${process.env.DB_PORT ? `,${process.env.DB_PORT}` : ''}`,
+      `Database=${database}`,
+      `UID=${process.env.DB_USER}`,
+      `PWD=${process.env.DB_PASSWORD}`,
+      'Encrypt=yes',
+      'TrustServerCertificate=yes',
+      'Trusted_Connection=No',
+    ].join(';') + ';';
+  }
+
+  const instance = process.env.DB_INSTANCE ? `\\${process.env.DB_INSTANCE}` : '';
+  return [
+    `Driver={${driver}}`,
+    `Server=${host}${instance}`,
+    `Database=${database}`,
+    'Trusted_Connection=Yes',
+    'Encrypt=yes',
+    'TrustServerCertificate=yes',
+  ].join(';') + ';';
 }
 
 export class DatabaseService {
@@ -22,17 +48,25 @@ export class DatabaseService {
   logger = new Logger(DatabaseService.name);
 
   async onModuleInit() {
-    this.pool = new sql.ConnectionPool({
-      connectionString: createConnectionString(),
-      connectionTimeout: 30000,
-      requestTimeout: 30000,
-      pool: { max: 10, min: 0 },
-    });
+    try {
+      this.pool = new sql.ConnectionPool({
+        connectionString: createConnectionString(),
+        connectionTimeout: 30000,
+        requestTimeout: 30000,
+        pool: { max: 10, min: 0 },
+      });
 
-    await this.pool.connect();
-    this.logger.log(
-      `Connected to SQL Server database ${process.env.DB_NAME ?? 'SOA_BTH'}`,
-    );
+      await this.pool.connect();
+      const currentDatabase = process.env.DB_NAME ?? 'SOA_DATN';
+      this.logger.log(`Connected to SQL Server database ${currentDatabase}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        'Không thể kết nối SQL Server. Kiểm tra DB_NAME, DB_HOST, DB_INSTANCE, DB_USER/DB_PASSWORD, ODBC Driver 17 và quyền truy cập Windows Authentication.',
+        message,
+      );
+      throw error;
+    }
   }
 
   async onModuleDestroy() {
@@ -57,10 +91,25 @@ export class DatabaseService {
 
 Injectable()(DatabaseService);
 
-export class DatabaseModule {}
+export class DatabaseModule {
+  static register() {
+    return {
+      module: DatabaseModule,
+      global: true,
+      providers: [
+        {
+          provide: DatabaseService,
+          useFactory: () => new DatabaseService(),
+        },
+      ],
+      exports: [DatabaseService],
+    };
+  }
+}
 
 Global()(DatabaseModule);
 Module({
+  global: true,
   providers: [DatabaseService],
   exports: [DatabaseService],
 })(DatabaseModule);

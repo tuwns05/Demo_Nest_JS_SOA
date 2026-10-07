@@ -1,27 +1,41 @@
-# B√†i th·ª±c h√†nh s·ªë 2: Router, Middleware v√† JWT
+# Demo NestJS SOA
 
-RESTful API NestJS minh h·ªça ƒëƒÉng nh·∫≠p, ph√°t h√†nh JWT v√† b·∫£o v·ªá API.
+D? ·n mÙ ph?ng ki?n tr˙c hu?ng d?ch v? (SOA) cho h? th?ng qu?n l˝ d? ·n t?t nghi?p. M?i service d?c l?p, ch? giao ti?p qua HTTP/REST v‡ chia s? h? t?ng thÙng qua `shared/database`.
 
-## API
+## C?u tr˙c thu m?c
 
-| Method | Endpoint | Ch·ª©c nƒÉng |
-|---|---|---|
-| `POST` | `/auth/login` | Nh·∫≠n `username`, `password`; ki·ªÉm tra user trong database v√† tr·∫£ `access_token`. |
-| `GET` | `/auth/profile` | Y√™u c·∫ßu `Authorization: Bearer <access_token>`; tr·∫£ v·ªÅ `Hello World`. |
+- `gateway/`: c?ng v‡o duy nh?t, th?c hi?n route forwarding v‡ t?ng h?p health check
+- `svc-auth/`: x·c th?c ngu?i d˘ng v‡ ph·t h‡nh JWT
+- `svc-sinhvien/`: service s? h?u b?ng `SINHVIEN`
+- `svc-detai/`: service s? h?u b?ng `DETAI`
+- `svc-dangky/`: service s? h?u b?ng `DANGKY`, giao ti?p HTTP v?i service kh·c
+- `shared/database/`: module k?t n?i SQL Server d˘ng chung cho m?i service
+- `docs/`: t‡i li?u hu?ng d?n v‡ vÌ d? request
+- `scripts/`: script c‡i d?t v‡ kh?i d?ng d?ng b?
 
-## V·ªã tr√≠ code
+## YÍu c?u mÙi tru?ng
 
-- [Router v√† c√°c endpoint](svc-auth/src/auth/auth.controller.ts)
-- [Ki·ªÉm tra t√†i kho·∫£n v√† t·∫°o JWT](svc-auth/src/auth/auth.service.ts)
-- [AuthGuard x√°c th·ª±c JWT trong Bearer token](svc-auth/src/auth/auth.guard.ts)
-- [C·∫•u h√¨nh JWT v√† th·ªùi h·∫°n token](svc-auth/src/auth/auth.module.ts)
-- [LoggerMiddleware ghi method, URL v√† status c·ªßa request](svc-auth/src/middleware/logger.middleware.ts)
-- [ƒêƒÉng k√Ω middleware cho AuthController](svc-auth/src/app.module.ts)
-- [K·∫øt n·ªëi SQL Server d√πng chung](shared/database/index.js)
+- Node.js 20+
+- NestJS 12
+- SQL Server v?i ODBC Driver 17
+- Windows Authentication ho?c SQL Authentication
+- `npm.cmd` trÍn Windows PowerShell
 
-## Ch·∫°y v√† th·ª≠ API
+## Bi?n mÙi tru?ng
 
-Trong PowerShell:
+Sao chÈp `.env.example` ? g?c v‡ c?p nh?t gi· tr? th?c c?a m·y b?n. N?u thi?u bi?n b?t bu?c, ?ng d?ng s? d?ng ngay khi kh?i d?ng v?i thÙng b·o rı r‡ng.
+
+## Ch?y nhanh
+
+```powershell
+# C‡i d?t t?t c? service
+./scripts/install-all.ps1
+
+# Kh?i d?ng t?t c? service
+./scripts/start-all.ps1
+```
+
+Ho?c ch?y t?ng service bÍn trong thu m?c tuong ?ng:
 
 ```powershell
 cd svc-auth
@@ -29,17 +43,27 @@ npm.cmd install
 npm.cmd run start:dev
 ```
 
-SQL Server c·∫ßn c√≥ database `SOA_BTH`, instance `LAPTOP-TUNWS\VIETTUAN`, Windows Authentication v√† ODBC Driver 17. Swagger: [http://localhost:3004/api](http://localhost:3004/api).
+## Route quan tr?ng
 
-ƒêƒÉng nh·∫≠p b·∫±ng `POST /auth/login`, sao ch√©p `access_token`, r·ªìi g·ªçi `GET /auth/profile` v·ªõi header `Authorization: Bearer <access_token>`.
+- `GET /health`: gateway t?ng h?p tr?ng th·i c?a t?ng service
+- `GET /sinhvien/health`: health check service sinh viÍn
+- `GET /detai/health`: health check service d? t‡i
+- `GET /dangky/health`: health check service dang k˝
+- `GET /auth/health`: health check service x·c th?c
 
-## B·∫£ng User
+## BiÍn b?n hi?n t?i
 
-| C·ªôt | Ki·ªÉu d·ªØ li·ªáu |
-|---|---|
-| `IdUser` | `INT PRIMARY KEY` |
-| `UserName` | `VARCHAR(255)` |
-| `Password` | `VARCHAR(255)` |
-| `Token` | `VARCHAR(255)` |
+D? ·n ? giai do?n n?n t?ng SOA: c?u hÏnh mÙi tru?ng, k?t n?i co s? d? li?u, health check, JWT, gateway v‡ hu?ng d?n ch?y chu?n. C·c CRUD nghi?p v? v‡ logic b?ng nghi?p v? s? do ngu?i d˘ng t? ho‡n thi?n sau n‡y.
 
-**L∆∞u √Ω:** Middleware hi·ªán ghi log request; vi·ªác x√°c th·ª±c JWT do `AuthGuard` th·ª±c hi·ªán. API hi·ªán so s√°nh password nh·∫≠n ƒë∆∞·ª£c tr·ª±c ti·∫øp v·ªõi database, ch∆∞a m√£ h√≥a Base64/MD5 ·ªü client; JWT tr·∫£ v·ªÅ c≈©ng ch∆∞a ƒë∆∞·ª£c l∆∞u v√†o c·ªôt `Token`.
+## Quy t?c ·p d?ng
+
+- M?i service ch? truy v?n b?ng c?a chÌnh nÛ.
+- `svc-dangky` khÙng truy v?n tr?c ti?p b?ng `SINHVIEN`/`DETAI`; ph?i d˘ng HTTP/REST.
+- KhÙng d? hard-code tÍn database trong code.
+- Tr·nh vi?t `SELECT/INSERT/UPDATE/DELETE` nghi?p v? trong n?n t?ng n‡y.
+
+## Danh s·ch vi?c tÙi s? t? l‡m
+
+- CRUD cho `SINHVIEN`, `DETAI`, `DANGKY`
+- G?n d? li?u th?c t? t? database v‡o controller/service khi d„ cÛ yÍu c?u nghi?p v? c? th?
+- T?o logic nghi?p v? c?a t?ng service theo business flow riÍng

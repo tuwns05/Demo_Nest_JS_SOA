@@ -1,25 +1,25 @@
-# Shared SQL Server connection
+# Shared database
 
-`@soa/database` provides one shared connection module for the services in this
-repository. Import `DatabaseModule` in each service's root Nest module and inject
-`DatabaseService` where database queries are needed. Each service process owns
-its own SQL connection pool.
+Package k?t n?i chung cho toàn b? h? th?ng SOA. M?i database name, server và login d?u d?c t? bi?n môi tru?ng; không hard-code vào file `index.js`.
 
-The default connection targets `LAPTOP-TUNWS\VIETTUAN`, database `SOA_BTH`,
-uses Windows Authentication, and enables encryption. It uses the ODBC Driver 17
-for SQL Server. Override these settings with `DB_HOST`, `DB_INSTANCE`,
-`DB_NAME`, and `DB_ODBC_DRIVER`, or supply a full `DB_CONNECTION_STRING`.
+## Bi?n b?t bu?c
 
-The Windows account running each service must have access to the database, and
-ODBC Driver 17 must be installed on that machine.
+- `DB_NAME` (m?c d?nh `SOA_DATN` n?u không du?c cung c?p)
+- `DB_HOST`
+- `DB_ODBC_DRIVER` (m?c d?nh `ODBC Driver 17 for SQL Server`)
 
-```ts
-import { Module } from '@nestjs/common';
-import { DatabaseModule } from '@soa/database';
+## SQL Authentication
 
-@Module({ imports: [DatabaseModule] })
-export class AppModule {}
-```
+- `DB_USER`
+- `DB_PASSWORD`
 
-For another service, add `"@soa/database": "file:../shared/database"` and
-`mssql` plus `msnodesqlv8` to its dependencies, then import the module as above.
+## Windows Authentication
+
+- `DB_INSTANCE` (tu? ch?n)
+- `DB_CONNECTION_STRING` (tu? ch?n, override hoàn toàn)
+
+## API
+
+- `DatabaseService.query(sql, params)`
+
+M?i truy v?n ph?i dùng tham s? có tên v?i `@param`, không n?i chu?i.

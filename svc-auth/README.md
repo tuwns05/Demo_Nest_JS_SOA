@@ -1,6 +1,6 @@
-# svc-detai
+# svc-auth
 
-Dịch vụ detai; hiện chỉ có GET /detai/health, kiểm tra SQL Server (200 hoặc 503). Chưa có CRUD.
+Xác thực: POST /auth/login công khai, GET /auth/health công khai trực tiếp, GET /auth/profile cần Bearer token. Đăng nhập dùng bcrypt và phát JWT.
 
 ## Biến môi trường
 
@@ -12,7 +12,7 @@ Cấu hình chung đọc từ ../.env: DB_HOST, DB_NAME bắt buộc cho service
 
 ## Chạy riêng
 
-Từ thư mục gốc, sao chép .env.example thành .env và sửa cấu hình. Trong thư mục svc-detai chạy:
+Từ thư mục gốc, sao chép .env.example thành .env và sửa cấu hình. Trong thư mục svc-auth chạy:
 
 ```powershell
 Copy-Item .env.example .env

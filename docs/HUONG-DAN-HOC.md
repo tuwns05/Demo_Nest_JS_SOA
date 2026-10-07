@@ -1,18 +1,29 @@
-# Hu?ng d?n h?c SOA
+# Lộ trình đọc code
 
-## M?c ti�u
+1. Đọc README.md, docs/KIEN-TRUC.md để biết ranh giới và giới hạn demo.
+2. Xem package.json, tsconfig.json và tsconfig.build.json từng service: ESM cần import .js, start:prod phải khớp đầu ra build.
+3. Đọc svc-sinhvien/src/main.ts: NestFactory, global prefix, ValidationPipe, exception filter, Swagger và shutdown hooks.
+4. Đọc svc-sinhvien/src/app.module.ts: @Module kết nối imports, controllers, providers; ConfigModule đọc .env riêng rồi .env gốc. Biến process environment ưu tiên hơn file.
+5. Đọc svc-sinhvien/src/app.controller.ts và app.service.ts: controller nhận HTTP, service thực hiện health; constructor nhận provider qua dependency injection.
+6. Đọc shared/database/src/index.ts: pool, truy vấn tham số và lifecycle; register() trả DynamicModule.
+7. Đọc svc-auth/src/auth/auth.module.ts, auth.service.ts, auth.guard.ts, decorators/public.decorator.ts: JWT bất đồng bộ, bcrypt và metadata công khai.
+8. Đọc gateway/src/auth.guard.ts, app.module.ts, app.controller.ts: APP_GUARD, middleware, lọc header và giữ query.
+9. Đọc gateway/src/app.service.ts: Promise.all kiểm tra song song và timeout.
+10. Đọc svc-dangky/src/clients: HttpModule/HttpService, ConfigService và ánh xạ lỗi HTTP.
+11. Thử docs/api-test.http, đối chiếu docs/API.md trước khi thiết kế nghiệp vụ.
 
-D? �n n�y m� ph?ng lu?ng request t? gateway d?n service v� cu?i c�ng d?n database. M?t request di qua gateway, du?c route t?i service thu?c t�nh, service ki?m tra d? li?u v� tr? v? response chu?n.
+| Khái niệm NestJS | Ý nghĩa |
+| --- | --- |
+| Decorator | @Controller, @Get, @Module mô tả lớp và route |
+| Provider | Đối tượng do container quản lý, thường có @Injectable |
+| Module | Nhóm chức năng, kiểm soát imports và exports |
+| DynamicModule | Cấu hình module trả về từ register() |
+| Guard | Cho phép hoặc chặn request trước controller |
+| Middleware | Ghi method, URL, status và thời gian trong vòng đời HTTP |
+| Pipe | Kiểm tra/chuyển đổi đầu vào; DTO cần decorator validation |
+| Exception filter | Chuẩn hóa lỗi thành phản hồi HTTP |
+| Observable | Kiểu trả về HttpService; có thể dùng firstValueFrom hoặc axiosRef |
+| Lifecycle | Mở pool khi boot, đóng khi shutdown |
+| Swagger | Mô tả API, không tự tạo endpoint hay bảo mật |
 
-## Lu?ng 1 request
-
-1. Client g?i `GET /health` ho?c `POST /auth/login` qua gateway.
-2. Gateway quy?t d?nh destination b?ng path v� forward request t?i service tuong ?ng.
-3. Service th?c thi logic h? t?ng (health check, JWT, k?t n?i database).
-4. Database tr? k?t qu? v� service convert th�nh response chu?n.
-
-## M?o d?c code
-
-- B?t d?u t? `gateway/src/main.ts` d? th?y c�ch kh?i d?ng gateway.
-- Sau d� d?c `svc-auth/src/main.ts` v� `svc-auth/src/auth/auth.module.ts` d? th?y JWT.
-- Cu?i c�ng d?c `shared/database/index.js` d? hi?u c�ch k?t n?i SQL Server.
+Thực hành thiếu token, token sai, giả header, giữ query và tắt service. SQL Server thật cần thiết để xác minh kết nối ODBC và đăng nhập tích hợp.

@@ -1,69 +1,73 @@
 # Demo NestJS SOA
 
-D? �n m� ph?ng ki?n tr�c hu?ng d?ch v? (SOA) cho h? th?ng qu?n l� d? �n t?t nghi?p. M?i service d?c l?p, ch? giao ti?p qua HTTP/REST v� chia s? h? t?ng th�ng qua `shared/database`.
+Nền tảng quản lý đồ án tốt nghiệp theo kiến trúc hướng dịch vụ, dùng NestJS 12, TypeScript ESM và SQL Server. Hiện có đăng nhập, JWT và health; chưa có CRUD nghiệp vụ.
 
-## C?u tr�c thu m?c
+```mermaid
+flowchart LR
+  C[Client] --> G[Gateway :3000]
+  G --> A[Auth :3004]
+  G --> S[Sinh viên :3001]
+  G --> D[Đề tài :3002]
+  G --> K[Đăng ký :3003]
+  K -. Client HTTP .-> S
+  K -. Client HTTP .-> D
+  A & S & D & K --> DB[(SQL Server)]
+```
 
-- `gateway/`: c?ng v�o duy nh?t, th?c hi?n route forwarding v� t?ng h?p health check
-- `svc-auth/`: x�c th?c ngu?i d�ng v� ph�t h�nh JWT
-- `svc-sinhvien/`: service s? h?u b?ng `SINHVIEN`
-- `svc-detai/`: service s? h?u b?ng `DETAI`
-- `svc-dangky/`: service s? h?u b?ng `DANGKY`, giao ti?p HTTP v?i service kh�c
-- `shared/database/`: module k?t n?i SQL Server d�ng chung cho m?i service
-- `docs/`: t�i li?u hu?ng d?n v� v� d? request
-- `scripts/`: script c�i d?t v� kh?i d?ng d?ng b?
+| Thành phần | Cổng | Bảng sở hữu theo thiết kế |
+| --- | --- | --- |
+| gateway | 3000 | Không có |
+| svc-auth | 3004 | dbo.User |
+| svc-sinhvien | 3001 | SINHVIEN, chưa triển khai |
+| svc-detai | 3002 | DETAI, chưa triển khai |
+| svc-dangky | 3003 | DANGKY, chưa triển khai |
 
-## Y�u c?u m�i tru?ng
+Quyền sở hữu bảng là quy ước, chưa được cưỡng chế bằng tài khoản SQL riêng.
 
-- Node.js 20+
-- NestJS 12
-- SQL Server v?i ODBC Driver 17
-- Windows Authentication ho?c SQL Authentication
-- `npm.cmd` tr�n Windows PowerShell
+## Chạy nhanh
 
-## Bi?n m�i tru?ng
+Cần Windows, PowerShell, Node.js 24 LTS, npm, SQL Server và Microsoft ODBC Driver 17 for SQL Server phù hợp kiến trúc Node. Windows Authentication dùng tài khoản chạy tiến trình; SQL Authentication cần DB_USER và DB_PASSWORD.
 
-Sao ch�p `.env.example` ? g?c v� c?p nh?t gi� tr? th?c c?a m�y b?n. N?u thi?u bi?n b?t bu?c, ?ng d?ng s? d?ng ngay khi kh?i d?ng v?i th�ng b�o r� r�ng.
-
-## Ch?y nhanh
+Từ thư mục gốc:
 
 ```powershell
-# C�i d?t t?t c? service
+Copy-Item .env.example .env
+foreach ($name in @('gateway','svc-auth','svc-sinhvien','svc-detai','svc-dangky')) {
+  Copy-Item "$name/.env.example" "$name/.env"
+}
+# Sửa .env: DB_HOST, DB_NAME, JWT_SECRET ngẫu nhiên tối thiểu 32 ký tự.
 ./scripts/install-all.ps1
-
-# Kh?i d?ng t?t c? service
+# Chuẩn bị database và chạy db/schema.sql, db/seed.sql theo db/README.md.
 ./scripts/start-all.ps1
+Invoke-RestMethod http://localhost:3000/health
 ```
 
-Ho?c ch?y t?ng service b�n trong thu m?c tuong ?ng:
+Chạy riêng: vào thư mục service rồi chạy `npm.cmd run start:dev` để xem log trực tiếp. Script khởi động chạy tiến trình nền. Không commit `.env`. Thử đăng nhập và API bằng [docs/api-test.http](docs/api-test.http). Chỉ POST /auth/login và GET /health công khai tại gateway. Swagger trực tiếp tại /api trên cổng 3001–3004.
 
-```powershell
-cd svc-auth
-npm.cmd install
-npm.cmd run start:dev
+## Lỗi thường gặp
+
+| Hiện tượng | Cách kiểm tra |
+| --- | --- |
+| Không kết nối DB | DB_HOST, DB_NAME, cổng/instance, TCP/IP, firewall và quyền đăng nhập |
+| Thiếu ODBC Driver 17 | Cài driver, đặt DB_ODBC_DRIVER đúng tên đã cài |
+| EADDRINUSE | Kiểm tra Get-NetTCPConnection, đổi PORT và URL liên quan |
+| 401 | Gửi Bearer token hợp lệ, kiểm tra hạn dùng |
+| JWT_SECRET không khớp | Gateway và auth phải đọc cùng secret, khởi động lại sau khi đổi |
+| Health 503 | Kiểm tra tiến trình và DB của service bị đánh dấu down |
+
+## Cây thư mục
+
+```text
+gateway/          Xác thực, chuyển tiếp HTTP và health tổng hợp
+svc-auth/         Đăng nhập và phát JWT
+svc-sinhvien/     Nền tảng sinh viên, hiện chỉ health
+svc-detai/        Nền tảng đề tài, hiện chỉ health
+svc-dangky/       Nền tảng đăng ký và client HTTP
+shared/database/  Package pool SQL và truy vấn tham số
+db/               Schema User và seed minh họa
+docs/             Kiến trúc, học code và API
+scripts/          Cài đặt, khởi động PowerShell
+.env.example      Biến chung, không chứa secret thật
 ```
 
-## Route quan tr?ng
-
-- `GET /health`: gateway t?ng h?p tr?ng th�i c?a t?ng service
-- `GET /sinhvien/health`: health check service sinh vi�n
-- `GET /detai/health`: health check service d? t�i
-- `GET /dangky/health`: health check service dang k�
-- `GET /auth/health`: health check service x�c th?c
-
-## Bi�n b?n hi?n t?i
-
-D? �n ? giai do?n n?n t?ng SOA: c?u h�nh m�i tru?ng, k?t n?i co s? d? li?u, health check, JWT, gateway v� hu?ng d?n ch?y chu?n. C�c CRUD nghi?p v? v� logic b?ng nghi?p v? s? do ngu?i d�ng t? ho�n thi?n sau n�y.
-
-## Quy t?c �p d?ng
-
-- M?i service ch? truy v?n b?ng c?a ch�nh n�.
-- `svc-dangky` kh�ng truy v?n tr?c ti?p b?ng `SINHVIEN`/`DETAI`; ph?i d�ng HTTP/REST.
-- Kh�ng d? hard-code t�n database trong code.
-- Tr�nh vi?t `SELECT/INSERT/UPDATE/DELETE` nghi?p v? trong n?n t?ng n�y.
-
-## Danh s�ch vi?c t�i s? t? l�m
-
-- CRUD cho `SINHVIEN`, `DETAI`, `DANGKY`
-- G?n d? li?u th?c t? t? database v�o controller/service khi d� c� y�u c?u nghi?p v? c? th?
-- T?o logic nghi?p v? c?a t?ng service theo business flow ri�ng
+Đọc [kiến trúc](docs/KIEN-TRUC.md), [lộ trình học](docs/HUONG-DAN-HOC.md), [API](docs/API.md), [hỏi đáp](docs/HOI-DAP-BAO-VE.md) và [chuẩn bị DB](db/README.md). Chưa có phân quyền vai trò, giao dịch phân tán, retry hay triển khai production.

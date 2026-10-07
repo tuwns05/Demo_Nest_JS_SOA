@@ -1,25 +1,20 @@
-# Shared database
+# Package kết nối SQL Server
 
-Package k?t n?i chung cho to�n b? h? th?ng SOA. M?i database name, server v� login d?u d?c t? bi?n m�i tru?ng; kh�ng hard-code v�o file `index.js`.
+`@soa/database` được dùng qua `file:../shared/database`. API: `DatabaseModule.register()` và `DatabaseService.query(sql, params)`. Package chỉ chứa hạ tầng, không có nghiệp vụ.
 
-## Bi?n b?t bu?c
+| Biến | Ý nghĩa |
+| --- | --- |
+| DB_HOST, DB_NAME | Bắt buộc, không có giá trị mặc định |
+| DB_PORT | Cổng TCP, không dùng đồng thời DB_INSTANCE |
+| DB_INSTANCE | Instance SQL Server tùy chọn |
+| DB_ODBC_DRIVER | Tên driver đã cài, ví dụ ODBC Driver 17 for SQL Server |
+| DB_USER, DB_PASSWORD | Cả hai để dùng SQL Authentication; bỏ cả hai dùng Windows |
+| DB_CONNECTION_STRING | Chuỗi ODBC tùy chọn; vẫn cần DB_HOST/DB_NAME |
 
-- `DB_NAME` (m?c d?nh `SOA_DATN` n?u kh�ng du?c cung c?p)
-- `DB_HOST`
-- `DB_ODBC_DRIVER` (m?c d?nh `ODBC Driver 17 for SQL Server`)
+Xem `.env.example` gốc. Windows Authentication dùng danh tính tiến trình Node. Cần SQL Server và ODBC driver phù hợp kiến trúc. Pool được tái sử dụng và đóng khi shutdown. Không log mật khẩu hay chuỗi kết nối. Demo dùng Encrypt và TrustServerCertificate; production cần chính sách chứng chỉ riêng.
 
-## SQL Authentication
+```typescript
+const result = await database.query('SELECT [IdUser] FROM [dbo].[User] WHERE [UserName] = @name', { name: 'demo' });
+```
 
-- `DB_USER`
-- `DB_PASSWORD`
-
-## Windows Authentication
-
-- `DB_INSTANCE` (tu? ch?n)
-- `DB_CONNECTION_STRING` (tu? ch?n, override ho�n to�n)
-
-## API
-
-- `DatabaseService.query(sql, params)`
-
-M?i truy v?n ph?i d�ng tham s? c� t�n v?i `@param`, kh�ng n?i chu?i.
+Không nối đầu vào người dùng vào SQL. Khi lỗi kết nối, kiểm tra host, DB, cổng/instance, firewall, driver và quyền tài khoản. Khi thiếu biến, thông báo phải chỉ rõ tên biến và nhắc `.env.example`.

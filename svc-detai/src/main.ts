@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: any) {
@@ -50,6 +51,12 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
+  const config = new DocumentBuilder()
+    .setTitle('API đề tài')
+    .setDescription('Nền tảng dịch vụ đề tài; hiện cung cấp kiểm tra kết nối cơ sở dữ liệu.')
+    .setVersion('1.0')
+    .build();
+  SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
   await app.listen(process.env.PORT ?? 3002);
 }
 

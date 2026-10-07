@@ -1,17 +1,75 @@
-### Gateway health
-GET http://localhost:3000/health
+@baseUrl = http://localhost:3000
+@token = {{login.response.body.$.access_token}}
 
-### Auth login
-POST http://localhost:3000/auth/login
+### Đăng nhập trước để lấy token (cú pháp VS Code REST Client)
+# @name login
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
   "username": "demo",
-  "password": "demo"
+  "password": "Demo@123456"
 }
 
-### Service health
-GET http://localhost:3001/sinhvien/health
-GET http://localhost:3002/detai/health
-GET http://localhost:3003/dangky/health
-GET http://localhost:3004/auth/health
+### Health gateway công khai; 200 khi cả bốn service up
+GET {{baseUrl}}/health
+
+### Health xác thực qua gateway
+GET {{baseUrl}}/auth/health
+Authorization: Bearer {{token}}
+
+### Health sinh viên qua gateway
+GET {{baseUrl}}/sinhvien/health
+Authorization: Bearer {{token}}
+
+### Health đề tài qua gateway
+GET {{baseUrl}}/detai/health
+Authorization: Bearer {{token}}
+
+### Health đăng ký qua gateway
+GET {{baseUrl}}/dangky/health
+Authorization: Bearer {{token}}
+
+### Profile được bảo vệ
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{token}}
+
+### 401: thiếu token, không tới upstream
+GET {{baseUrl}}/sinhvien/5
+
+### 401: token rác
+GET {{baseUrl}}/sinhvien/5
+Authorization: Bearer token-rac
+
+### 401: sai mật khẩu
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "demo",
+  "password": "sai-mat-khau"
+}
+
+### 404: route lạ với token hợp lệ
+GET {{baseUrl}}/khong-ton-tai
+Authorization: Bearer {{token}}
+
+### Query được giữ nguyên; health không sử dụng tham số page
+GET {{baseUrl}}/sinhvien/health?page=1
+Authorization: Bearer {{token}}
+
+### Header giả bị thay bằng sub của JWT; quan sát upstream bằng script check-gateway
+GET {{baseUrl}}/sinhvien/health
+Authorization: Bearer {{token}}
+x-user-id: 999
+
+### 503: dừng riêng svc-detai trước khi gửi; khởi động lại sau khi kiểm tra
+GET {{baseUrl}}/detai/health
+Authorization: Bearer {{token}}
+
+### 503 degraded: thực hiện khi svc-detai vẫn đang dừng
+GET {{baseUrl}}/health
+
+### Service khác tiếp tục hoạt động khi svc-detai dừng
+GET {{baseUrl}}/sinhvien/health
+Authorization: Bearer {{token}}

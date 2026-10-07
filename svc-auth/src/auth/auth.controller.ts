@@ -5,9 +5,7 @@ import {
     HttpCode,
     HttpStatus,
     Post,
-    UseGuards
 } from '@nestjs/common';
-import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { SignInRequest } from './dto/signIn.request.js';
 import { SignInResponse } from './dto/signIn.reponse.js';
@@ -26,7 +24,6 @@ export class AuthController {
             signInDto.password
         );
     }
-    @UseGuards(AuthGuard)
     @Get('profile')
     getProfile(): string {
         return 'Hello World';

@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '@soa/database';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
 
 interface UserLoginRecord extends Record<string, unknown> {
   IdUser: number;
@@ -13,6 +15,7 @@ export class AuthService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly jwtService: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async signIn(username: string, password: string) {
@@ -22,14 +25,14 @@ export class AuthService {
     );
     const user = result.recordset[0];
 
-    if (!user || user.Password !== password) {
+    if (!user || !(await bcrypt.compare(password, user.Password))) {
       throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không hợp lệ');
     }
 
     const payload = { sub: String(user.IdUser), username: user.UserName };
     return {
       access_token: await this.jwtService.signAsync(payload),
-      expires_in: '15m',
+      expires_in: this.config.getOrThrow<string>('JWT_EXPIRES_IN'),
       token_type: 'Bearer',
     };
   }

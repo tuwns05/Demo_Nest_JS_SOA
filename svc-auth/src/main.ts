@@ -1,4 +1,4 @@
-﻿
+
 import {
   ExceptionFilter,
   HttpException,
@@ -57,6 +57,7 @@ async function bootstrap() {
     .setDescription('API đăng nhập và xác thực')
     .setVersion('1.0')
     .addTag('auth')
+    .addBearerAuth()
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);

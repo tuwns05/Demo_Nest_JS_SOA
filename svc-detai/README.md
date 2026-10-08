@@ -4,6 +4,10 @@ Dịch vụ detai; hiện chỉ có GET /detai/health, kiểm tra SQL Server (20
 
 ## Biến môi trường
 
+Service đăng ký AuthGuard toàn cục. API nghiệp vụ mới mặc định yêu cầu JWT HS256, kể cả gọi trực tiếp cổng service; chỉ endpoint có `@Public()` được miễn (hiện là health). Token phải có `sub`, `exp`, chữ ký hợp lệ và chưa hết hạn. Header `x-user-id` không thay thế token.
+
+Dùng `JWT_SECRET` ít nhất 32 ký tự, giống svc-auth/gateway/svc-sinhvien, đọc từ `.env` gốc hoặc `.env` service. Gửi `Authorization: Bearer <access_token>` lấy từ `POST /auth/login`. Thiếu hoặc sai token trả 401. Swagger hỗ trợ nút Authorize; hiện chưa có phân quyền vai trò.
+
 | Biến riêng | Ý nghĩa |
 | --- | --- |
 | PORT | Cổng riêng của tiến trình |

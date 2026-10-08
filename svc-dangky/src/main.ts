@@ -55,6 +55,7 @@ async function bootstrap() {
     .setTitle('API đăng ký')
     .setDescription('Nền tảng dịch vụ đăng ký và client HTTP; chưa có endpoint nghiệp vụ đăng ký.')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
   await app.listen(process.env.PORT ?? 3003);

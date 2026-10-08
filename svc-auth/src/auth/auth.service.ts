@@ -21,12 +21,12 @@ export class AuthService {
   async signIn(username: string, password: string) {
     const result = await this.databaseService.query<UserLoginRecord>(
       'SELECT TOP (1) [IdUser], [UserName], [Password] FROM [dbo].[User] WHERE [UserName] = @username',
-      { username },
+      { username: username.trim() },
     );
     const user = result.recordset[0];
 
     if (!user || !(await bcrypt.compare(password, user.Password))) {
-      throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không hợp lệ');
+      throw new UnauthorizedException('Tài khoản hoặc mật khẩu không hợp lệ');
     }
 
     const payload = { sub: String(user.IdUser), username: user.UserName };

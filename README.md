@@ -11,18 +11,21 @@ flowchart LR
   G --> K[Đăng ký :3003]
   K -. Client HTTP .-> S
   K -. Client HTTP .-> D
-  A & S & D & K --> DB[(SQL Server)]
+  A --> DBA[(SOA_AUTH)]
+  S --> DBS[(SOA_SINHVIEN)]
+  D --> DBD[(SOA_DETAI)]
+  K --> DBK[(SOA_DANGKY)]
 ```
 
-| Thành phần | Cổng | Bảng sở hữu theo thiết kế |
-| --- | --- | --- |
-| gateway | 3000 | Không có |
-| svc-auth | 3004 | dbo.User |
-| svc-sinhvien | 3001 | SINHVIEN, đã có CRUD |
-| svc-detai | 3002 | DETAI, chưa triển khai |
-| svc-dangky | 3003 | DANGKY, chưa triển khai |
+| Thành phần | Cổng | Database | Bảng sở hữu |
+| --- | --- | --- | --- |
+| gateway | 3000 | Không có | Không có |
+| svc-auth | 3004 | SOA_AUTH | dbo.User |
+| svc-sinhvien | 3001 | SOA_SINHVIEN | SINHVIEN, đã có CRUD |
+| svc-detai | 3002 | SOA_DETAI | DETAI, chưa có CRUD |
+| svc-dangky | 3003 | SOA_DANGKY | DANGKY, chưa có CRUD |
 
-Quyền sở hữu bảng là quy ước, chưa được cưỡng chế bằng tài khoản SQL riêng.
+Mỗi service đặt DB_NAME trong .env riêng; thông tin SQL Server dùng chung từ .env gốc. Quyền truy cập chưa được giới hạn bằng tài khoản SQL riêng. Không có khóa ngoại giữa các database; kiểm tra quan hệ nghiệp vụ cần thực hiện qua service.
 
 ## Chạy nhanh
 
@@ -37,7 +40,8 @@ foreach ($name in @('gateway','svc-auth','svc-sinhvien','svc-detai','svc-dangky'
 }
 # Sửa .env: DB_HOST, DB_NAME, JWT_SECRET ngẫu nhiên tối thiểu 32 ký tự.
 ./scripts/install-all.ps1
-# Chuẩn bị database và chạy db/schema.sql, db/seed.sql theo db/README.md.
+# Tạo 4 database và bảng bằng các file db/separate/01-auth.sql đến 04-dangky.sql.
+# Chuẩn bị tài khoản quản trị trong SOA_AUTH.dbo.User; Password phải là bcrypt hash.
 ./scripts/start-all.ps1
 Invoke-RestMethod http://localhost:3000/health
 ```
@@ -45,6 +49,10 @@ Invoke-RestMethod http://localhost:3000/health
 Nếu Windows chặn chạy script, dùng `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-all.ps1` và tương tự với `scripts/start-all.ps1`. Đây là tùy chọn cho tiến trình hiện tại, không đổi chính sách hệ thống. Kết quả kiểm tra và lệnh chạy lại nằm ở [báo cáo nghiệm thu](docs/BAO-CAO-NGHIEM-THU.md).
 
 Chạy riêng: vào thư mục service rồi chạy `npm.cmd run start:dev` để xem log trực tiếp. Script khởi động chạy tiến trình nền. Không commit `.env`. Thử đăng nhập và API bằng [docs/api-test.http](docs/api-test.http). Chỉ POST /auth/login và GET /health công khai tại gateway. Swagger trực tiếp tại /api trên cổng 3001–3004.
+
+## Frontend Angular
+
+Frontend Angular nằm trong [FE_Demo_SOA_AG](FE_Demo_SOA_AG/README.md). Sau khi backend chạy, mở terminal trong thư mục đó, chạy `npm.cmd install` và `npm.cmd start`, rồi vào http://localhost:4200. Frontend có đăng nhập, CRUD sinh viên và trạng thái đề tài/đăng ký; mỗi service có component và Angular service riêng. Proxy phát triển chuyển `/api/*` đến gateway cổng 3000.
 
 ## Lỗi thường gặp
 
@@ -54,7 +62,8 @@ Chạy riêng: vào thư mục service rồi chạy `npm.cmd run start:dev` đ�
 | Thiếu ODBC Driver 17 | Cài driver, đặt DB_ODBC_DRIVER đúng tên đã cài |
 | EADDRINUSE | Kiểm tra Get-NetTCPConnection, đổi PORT và URL liên quan |
 | 401 | Gửi Bearer token hợp lệ, kiểm tra hạn dùng |
-| JWT_SECRET không khớp | Gateway và auth phải đọc cùng secret, khởi động lại sau khi đổi |
+| JWT_SECRET không khớp | Gateway và các service phải đọc cùng secret, khởi động lại sau khi đổi |
+| Đăng nhập 401 sau khi tách DB | Kiểm tra tài khoản nằm trong SOA_AUTH.dbo.User; dữ liệu SOA_DATN không tự chuyển sang |
 | Health 503 | Kiểm tra tiến trình và DB của service bị đánh dấu down |
 
 ## Cây thư mục

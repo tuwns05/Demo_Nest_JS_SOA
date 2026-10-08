@@ -2,6 +2,8 @@
 
 Xác thực: POST /auth/login công khai, GET /auth/health công khai trực tiếp, GET /auth/profile cần Bearer token. Đăng nhập dùng bcrypt và phát JWT.
 
+Đăng nhập quản trị nhận body `{ "user": "tên tài khoản", "password": "mật khẩu" }`. Trường `user` đối chiếu `dbo.User.UserName`, mật khẩu kiểm tra với bcrypt hash trong `dbo.User.Password`. Không dùng mã sinh viên hoặc mật khẩu trong `SINHVIEN` để đăng nhập. JWT giữ `sub = IdUser`, `username = UserName`; không có liên kết MaSV. Bảng User giữ nguyên cấu trúc. Hiện chưa có phân quyền vai trò riêng.
+
 ## Biến môi trường
 
 | Biến riêng | Ý nghĩa |

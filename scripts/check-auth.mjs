@@ -29,7 +29,7 @@ try {
   await app.listen(0, '127.0.0.1');
   const base = await app.getUrl();
   const login = (username, password) => fetch(`${base}/auth/login`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }),
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ user: username, password }),
   });
   const response = await login('demo', 'Demo@123456');
   assert.equal(response.status, 200);
@@ -38,10 +38,19 @@ try {
   const jwt = new JwtService({ secret: process.env.JWT_SECRET });
   const decoded = await jwt.verifyAsync(payload.access_token);
   assert.equal(decoded.sub, '7');
+  assert.equal(decoded.username, 'demo');
+  assert.equal(decoded.maSV, undefined);
   assert.equal(decoded.exp - decoded.iat, 420);
   assert.equal((await login('demo', 'wrong')).status, 401);
   assert.equal((await login('unknown', 'wrong')).status, 401);
   assert.equal((await login('', '')).status, 400);
+  assert.equal((await login('   ', 'password')).status, 400);
+  assert.equal((await login('x'.repeat(101), 'password')).status, 400);
+  const studentLogin = await fetch(`${base}/auth/login`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ maSV: 'SV001', password: 'password' }),
+  });
+  assert.equal(studentLogin.status, 400);
   for (const secret of ['', 'short', 'replace-with-a-random-secret']) {
     const result = spawnSync(process.execPath, ['dist/main.js'], {
       cwd: fileURLToPath(new URL('../svc-auth', import.meta.url)),

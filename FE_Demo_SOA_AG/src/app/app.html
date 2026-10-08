@@ -1,0 +1,64 @@
+<a class="skip-link" href="#main-content">Đến nội dung chính</a>
+<div class="app-layout" [class.guest-layout]="!auth.session.authenticated() || isLogin()">
+  @if (auth.session.authenticated() && !isLogin()) {
+    <aside class="sidebar">
+      <a class="brand" routerLink="/tong-quan"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>SOA <strong>Campus</strong><small>QUẢN LÝ ĐỒ ÁN</small></span></a
+      >
+      <span class="nav-caption">KHÔNG GIAN LÀM VIỆC</span>
+      <nav aria-label="Điều hướng chính">
+        @for (item of navigation; track item.path) {
+          <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page"
+            ><span class="nav-icon" aria-hidden="true">{{ item.icon }}</span
+            >{{ item.label }}<span class="nav-arrow" aria-hidden="true">›</span></a
+          >
+        }
+      </nav>
+      <div class="sidebar-note">
+        <span class="note-icon" aria-hidden="true">✧</span><strong>Một nơi, mọi kết nối.</strong>
+        <p>Đồng hành cùng hành trình đồ án tốt nghiệp.</p>
+      </div>
+      <div class="sidebar-account">
+        <a routerLink="/tai-khoan" routerLinkActive="active"
+          ><span class="avatar">{{ auth.session.username().slice(0, 2).toUpperCase() }}</span
+          ><span class="account-name"
+            >{{ auth.session.username() }}<small>Tài khoản đang đăng nhập</small></span
+          ></a
+        ><button
+          class="icon-button"
+          aria-label="Đăng xuất"
+          title="Đăng xuất"
+          (click)="auth.logout()"
+        >
+          ⇥
+        </button>
+      </div>
+    </aside>
+  } @else {
+    <header class="guest-header">
+      <a class="brand" routerLink="/tong-quan"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>SOA <strong>Campus</strong></span></a
+      ><span>Hệ thống quản lý đồ án tốt nghiệp</span>
+    </header>
+  }
+  <div class="workspace">
+    @if (auth.session.authenticated() && !isLogin()) {
+      <header class="topbar">
+        <span
+          >Không gian học thuật <span class="topbar-divider">/</span>
+          <strong>Quản lý đồ án</strong></span
+        ><a routerLink="/tai-khoan"
+          ><span class="status-dot"></span> {{ auth.session.username() }}</a
+        >
+      </header>
+    }
+    <main id="main-content" [class.page-content]="auth.session.authenticated() && !isLogin()">
+      <router-outlet />
+    </main>
+    <footer class="app-footer">
+      <span>SOA Campus</span><span>Đơn giản hơn. Kết nối tốt hơn.</span>
+    </footer>
+  </div>
+</div>

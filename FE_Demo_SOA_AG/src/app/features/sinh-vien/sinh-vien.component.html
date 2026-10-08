@@ -1,0 +1,296 @@
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">QUẢN LÝ HỒ SƠ</span>
+    <h1>Sinh viên</h1>
+    <p class="muted">Thông tin sinh viên, gọn gàng trong một danh sách.</p>
+  </div>
+  <button class="button primary" (click)="openCreate()" [disabled]="loading() || busy()">
+    ＋ Thêm sinh viên
+  </button>
+</section>
+<div class="stat-strip">
+  <div>
+    <span class="stat-number">{{ store.students().length }}</span
+    ><span class="muted">Sinh viên đã tải</span>
+  </div>
+  <div>
+    <span class="stat-number">{{ classes().length }}</span
+    ><span class="muted">Lớp học</span>
+  </div>
+  <div class="stat-description"><span class="status-dot"></span><span>Hồ sơ sinh viên</span></div>
+</div>
+@if (message()) {
+  <p class="alert success" role="status">{{ message() }}</p>
+}
+@if (error() && !mode()) {
+  <p class="alert error" role="alert">
+    {{ error() }} <button class="text-button" (click)="reload()">Thử lại</button>
+  </p>
+}
+<section class="panel">
+  <div class="table-toolbar">
+    <div class="search-field">
+      <span aria-hidden="true">⌕</span
+      ><input
+        aria-label="Tìm sinh viên"
+        placeholder="Tìm theo tên, mã hoặc email…"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+      />
+    </div>
+    <select
+      aria-label="Lọc theo lớp"
+      [ngModel]="classFilter()"
+      (ngModelChange)="classFilter.set($event)"
+    >
+      <option value="">Tất cả lớp</option>
+      @for (lop of classes(); track lop) {
+        <option [value]="lop">{{ lop }}</option>
+      }
+    </select>
+    <button class="button subtle" (click)="reload()" [disabled]="loading() || busy()">
+      ↻ Làm mới
+    </button>
+  </div>
+  <div class="table-scroll" [attr.aria-busy]="loading()">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã sinh viên</th>
+          <th>Họ và tên</th>
+          <th>Email</th>
+          <th>Lớp</th>
+          <th class="align-right">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="5" class="empty-cell"><span class="loader"></span> Đang tải danh sách…</td>
+          </tr>
+        } @else {
+          @for (student of filtered(); track student.MaSV) {
+            <tr>
+              <td class="student-code">{{ student.MaSV }}</td>
+              <td>
+                <div class="person">
+                  <span class="avatar">{{ initials(student.HoTen) }}</span
+                  ><button
+                    class="student-name"
+                    (click)="openStudent(student, 'detail')"
+                    [disabled]="busy()"
+                  >
+                    {{ student.HoTen }}
+                  </button>
+                </div>
+              </td>
+              <td class="muted">{{ student.Email }}</td>
+              <td>
+                <span class="class-tag">{{ student.Lop }}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    class="text-button"
+                    (click)="openStudent(student, 'edit')"
+                    [disabled]="busy()"
+                  >
+                    Sửa</button
+                  ><button
+                    class="text-button danger-text"
+                    (click)="askDelete(student)"
+                    [disabled]="busy()"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="empty-cell">
+                <span class="empty-symbol" aria-hidden="true">▤</span
+                ><strong>{{
+                  error()
+                    ? 'Chưa tải được danh sách'
+                    : query() || classFilter()
+                      ? 'Không tìm thấy sinh viên phù hợp'
+                      : 'Danh sách đang trống'
+                }}</strong>
+                <p>
+                  {{
+                    error()
+                      ? 'Kiểm tra kết nối rồi thử làm mới.'
+                      : 'Thêm sinh viên mới hoặc thay đổi bộ lọc để bắt đầu.'
+                  }}
+                </p>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="table-footer">
+    <span>{{ filtered().length }} / {{ store.students().length }} sinh viên</span
+    ><span>Danh sách sắp xếp theo mã sinh viên</span>
+  </div>
+</section>
+@if (mode()) {
+  <div class="modal-backdrop" (keydown.escape)="close()">
+    <section
+      class="modal"
+      appDialogFocus
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="student-dialog-title"
+      tabindex="-1"
+    >
+      <div class="modal-heading">
+        <div>
+          <span class="eyebrow">HỒ SƠ SINH VIÊN</span>
+          <h2 id="student-dialog-title">
+            {{
+              mode() === 'create'
+                ? 'Thêm sinh viên'
+                : mode() === 'edit'
+                  ? 'Cập nhật thông tin'
+                  : mode() === 'delete'
+                    ? 'Xóa sinh viên?'
+                    : 'Chi tiết sinh viên'
+            }}
+          </h2>
+        </div>
+        <button class="icon-button" aria-label="Đóng" (click)="close()" [disabled]="busy()">
+          ✕
+        </button>
+      </div>
+      @if (error()) {
+        <p class="alert error" role="alert">{{ error() }}</p>
+      }
+      @if (mode() === 'delete') {
+        <p>
+          Bạn muốn xóa hồ sơ <strong>{{ current()?.HoTen }}</strong> ({{ current()?.MaSV }})?
+        </p>
+        <p class="muted">Hồ sơ có dữ liệu đăng ký liên quan có thể không xóa được.</p>
+        <div class="modal-actions">
+          <button class="button subtle" (click)="close()" [disabled]="busy()">Hủy</button
+          ><button class="button danger" (click)="remove()" [disabled]="busy()">
+            {{ busy() ? 'Đang xóa…' : 'Xóa sinh viên' }}
+          </button>
+        </div>
+      } @else if (mode() === 'detail') {
+        <dl class="detail-grid">
+          <div>
+            <dt>Mã sinh viên</dt>
+            <dd>{{ current()?.MaSV }}</dd>
+          </div>
+          <div>
+            <dt>Họ và tên</dt>
+            <dd>{{ current()?.HoTen }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{{ current()?.Email }}</dd>
+          </div>
+          <div>
+            <dt>Lớp</dt>
+            <dd>{{ current()?.Lop }}</dd>
+          </div>
+        </dl>
+        <div class="modal-actions">
+          <button class="button subtle" (click)="close()">Đóng</button
+          ><button class="button primary" (click)="mode.set('edit')">Chỉnh sửa</button>
+        </div>
+      } @else {
+        <form #studentForm="ngForm" (ngSubmit)="save()">
+          <div class="form-grid">
+            <div>
+              <label for="maSV">Mã sinh viên <span>*</span></label
+              ><input
+                id="maSV"
+                name="maSV"
+                [(ngModel)]="form.maSV"
+                required
+                maxlength="50"
+                [readonly]="mode() === 'edit'"
+                placeholder="VD: SV001"
+              />
+            </div>
+            <div>
+              <label for="lop">Lớp <span>*</span></label
+              ><input
+                id="lop"
+                name="lop"
+                [(ngModel)]="form.lop"
+                required
+                maxlength="100"
+                placeholder="VD: CNTT01"
+              />
+            </div>
+            <div class="span-two">
+              <label for="hoTen">Họ và tên <span>*</span></label
+              ><input
+                id="hoTen"
+                name="hoTen"
+                [(ngModel)]="form.hoTen"
+                required
+                maxlength="200"
+                autocomplete="name"
+                placeholder="Nhập họ tên sinh viên"
+              />
+            </div>
+            <div class="span-two">
+              <label for="email">Email <span>*</span></label
+              ><input
+                id="email"
+                name="email"
+                [(ngModel)]="form.email"
+                required
+                email
+                type="email"
+                maxlength="254"
+                autocomplete="email"
+                placeholder="sinhvien@example.com"
+              />
+            </div>
+            <div class="span-two">
+              <label for="matKhau">{{ mode() === 'create' ? 'Mật khẩu *' : 'Mật khẩu mới' }}</label
+              ><input
+                id="matKhau"
+                name="matKhau"
+                [(ngModel)]="form.matKhau"
+                type="password"
+                [required]="mode() === 'create'"
+                minlength="6"
+                maxlength="255"
+                autocomplete="new-password"
+                placeholder="Tối thiểu 6 ký tự"
+              /><small class="muted">{{
+                mode() === 'edit'
+                  ? 'Để trống nếu không thay đổi mật khẩu.'
+                  : 'Mật khẩu không hiển thị trong hồ sơ sinh viên.'
+              }}</small>
+            </div>
+          </div>
+          @if (studentForm.invalid && studentForm.touched) {
+            <p class="form-hint">
+              Điền đủ trường bắt buộc, email hợp lệ và mật khẩu tối thiểu 6 ký tự.
+            </p>
+          }
+          <div class="modal-actions">
+            <button type="button" class="button subtle" (click)="close()" [disabled]="busy()">
+              Hủy</button
+            ><button
+              type="submit"
+              class="button primary"
+              [disabled]="studentForm.invalid || busy()"
+            >
+              {{ busy() ? 'Đang lưu…' : 'Lưu sinh viên' }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

@@ -4,7 +4,7 @@ Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công k
 
 | Method | Route | Phản hồi hiện có |
 | --- | --- | --- |
-| POST | /auth/login | Body username/password; 200 access_token, expires_in, token_type; sai thông tin 401 |
+| POST | /auth/login | Body user/password của tài khoản quản trị trong dbo.User; 200 access_token, expires_in, token_type; sai thông tin 401 |
 | GET | /auth/profile | Chuỗi protected route; chưa phải hồ sơ người dùng |
 | GET | /health | 200 status ok khi cả bốn up; 503 degraded nếu có down |
 | GET | /auth/health | Kiểm tra DB; 200 hoặc 503 |

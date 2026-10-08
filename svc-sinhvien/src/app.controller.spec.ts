@@ -1,23 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { ServiceUnavailableException } from '@nestjs/common';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 
-describe('AppController', () => {
-  let appController: AppController;
-
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
-    }).compile();
-
-    appController = app.get<AppController>(AppController);
+describe('AppController health', () => {
+  it('returns the database health result', async () => {
+    const health = { status: 'ok', service: 'sinhvien' };
+    const service = { getHealth: vi.fn().mockResolvedValue(health) } as unknown as AppService;
+    await expect(new AppController(service, service).getHealth()).resolves.toEqual(health);
   });
 
-    it('should return health payload', () => {
-      expect(appController.getHealth()).toEqual({
-        status: 'ok',
-        service: 'sinhvien',
-      });
-    });
+  it('returns 503 when the database is unavailable', async () => {
+    const service = {
+      getHealth: vi.fn().mockResolvedValue({ status: 'down', service: 'sinhvien' }),
+    } as unknown as AppService;
+    await expect(new AppController(service, service).getHealth()).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
+});

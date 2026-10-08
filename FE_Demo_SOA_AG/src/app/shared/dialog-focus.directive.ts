@@ -21,7 +21,7 @@ export class DialogFocusDirective implements AfterViewInit, OnDestroy {
     if (event.key !== 'Tab') return;
     const items = [
       ...this.element.nativeElement.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]',
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]',
       ),
     ];
     const first = items[0];

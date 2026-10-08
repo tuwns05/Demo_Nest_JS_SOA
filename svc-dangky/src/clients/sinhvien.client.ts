@@ -1,15 +1,23 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { findById } from './find-by-id.js';
 
 @Injectable()
 export class SinhVienClient {
-  private readonly base: string;
-  constructor(private readonly http: HttpService, config: ConfigService) {
-    this.base = config.getOrThrow<string>('SERVICE_URL_SINHVIEN');
+  private readonly url: string;
+
+  constructor(
+    private readonly http: HttpService,
+    config: ConfigService,
+  ) {
+    this.url =
+      config.getOrThrow<string>('SERVICE_URL_SINHVIEN').replace(/\/$/, '') +
+      '/sinhvien';
   }
-  findById(id: string | number): Promise<unknown> {
-    return findById(this.http, this.base, 'sinhvien', 'sinh viên', id);
+
+  findById(id: string | number, authorization?: string): Promise<unknown> {
+    const url = `${this.url}/${encodeURIComponent(String(id))}`;
+    return findById(this.http, url, authorization);
   }
 }

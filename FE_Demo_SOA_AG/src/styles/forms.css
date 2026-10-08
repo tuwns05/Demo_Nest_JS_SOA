@@ -9,7 +9,8 @@ label span {
   color: #8a977b;
 }
 input,
-select {
+select,
+textarea {
   display: block;
   width: 100%;
   border: 1px solid #dfe5d9;
@@ -27,7 +28,9 @@ input[readonly] {
   background: #f3f5ef;
   color: #7a8573;
 }
-input.ng-invalid.ng-touched {
+input.ng-invalid.ng-touched,
+select.ng-invalid.ng-touched,
+textarea.ng-invalid.ng-touched {
   border-color: #c37b6a;
 }
 small.muted {
@@ -253,6 +256,24 @@ small.muted {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
+}
+.crud-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+textarea {
+  font: inherit;
+  resize: vertical;
+}
+.wrap-cell {
+  white-space: normal;
+  min-width: 180px;
+  overflow-wrap: anywhere;
+}
+.preserve-lines {
+  white-space: pre-wrap;
 }
 .span-two {
   grid-column: span 2;

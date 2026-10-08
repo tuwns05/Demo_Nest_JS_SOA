@@ -16,13 +16,19 @@ Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công k
 | DELETE | /sinhvien/:maSV | 200 message và data; 404 không tồn tại; 409 nếu có khóa ngoại tham chiếu |
 | GET | /detai/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /dangky/health | Kiểm tra DB; 200 hoặc 503 |
+| GET | /detai | 200 mảng đề tài |
+| GET | /detai/:maDT | 200 đề tài; 404 không tồn tại |
+| POST | /detai | tenDT bắt buộc; moTa, giangVienHD tùy chọn; 201 message/data |
+| PATCH | /detai/:maDT | Sửa các trường như tạo; 200 message/data |
+| DELETE | /detai/:maDT | 200 message/data; 404 không tồn tại |
+| GET | /dangky | 200 mảng đăng ký |
+| GET | /dangky/:maDK | 200 đăng ký; 404 không tồn tại |
+| POST | /dangky | maSV (chuỗi), maDT (số) bắt buộc; ngayDangKy, trangThai tùy chọn; 201 message/data |
+| PATCH | /dangky/:maDK | Sửa các trường như tạo; 200 message/data |
+| DELETE | /dangky/:maDK | 200 message/data; 404 không tồn tại |
 
 Swagger trực tiếp ở /api từng service, chưa có Swagger tổng hợp. Route lạ có token trả 404; token thiếu/sai trả 401 trước định tuyến. Lỗi kết nối upstream trả 503. Gateway xóa x-user-id client và thay bằng sub đã xác minh.
 
-## Hợp đồng dự kiến, chưa có endpoint
+Các API CRUD đều cần JWT, kể cả truy cập trực tiếp service. Body sai, trường thừa hoặc PATCH rỗng trả 400. Dữ liệu trả về dùng tên cột SQL (MaDT, TenDT, MaDK, MaSV...). Ngày đăng ký định dạng YYYY-MM-DD; bỏ ngày khi tạo dùng GETDATE(). Tạo/sửa đăng ký gọi svc-sinhvien và svc-detai kèm token để kiểm tra mã; mã không tồn tại trả 404, dịch vụ không kết nối được trả 503.
 
-| Method | Route | Thành công dự kiến | Lỗi dự kiến |
-| --- | --- | --- | --- |
-| GET | /detai/:id | 200 JSON có id đề tài | 404 không có đề tài; 503 lỗi kết nối |
-
-Sinh viên dùng mã `maSV` dạng chuỗi và đã có CRUD; xem `svc-sinhvien/README.md`. Giữ API tạo cũ `/sinhvien/sinh-vien/create`. Đề tài chưa có endpoint lấy theo mã; đăng ký chưa có CRUD. Danh sách sinh viên chưa phân trang. Gateway giữ query nhưng chưa có nghiệp vụ xử lý query.
+Chưa có phân trang, chặn đăng ký trùng hoặc tự xóa liên quan giữa database. Xóa đăng ký trước khi xóa sinh viên/đề tài để tránh dữ liệu mồ côi. Giữ API tạo sinh viên cũ `/sinhvien/sinh-vien/create`.

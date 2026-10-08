@@ -172,7 +172,7 @@
         <p>
           Bạn muốn xóa hồ sơ <strong>{{ current()?.HoTen }}</strong> ({{ current()?.MaSV }})?
         </p>
-        <p class="muted">Hồ sơ có dữ liệu đăng ký liên quan có thể không xóa được.</p>
+        <p class="muted">Hãy xóa các đăng ký liên quan trước khi xóa sinh viên.</p>
         <div class="modal-actions">
           <button class="button subtle" (click)="close()" [disabled]="busy()">Hủy</button
           ><button class="button danger" (click)="remove()" [disabled]="busy()">

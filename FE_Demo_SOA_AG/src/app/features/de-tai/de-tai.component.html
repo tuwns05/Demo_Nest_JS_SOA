@@ -1,0 +1,185 @@
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">QUẢN LÝ ĐỒ ÁN</span>
+    <h1>Đề tài</h1>
+    <p class="muted">Danh sách đề tài và giảng viên hướng dẫn.</p>
+  </div>
+  <button class="button primary" (click)="openCreate()" [disabled]="loading() || busy()">
+    ＋ Thêm đề tài
+  </button>
+</section>
+@if (message()) {
+  <p class="alert success" role="status">{{ message() }}</p>
+}
+@if (error() && !mode()) {
+  <p class="alert error" role="alert">{{ error() }}</p>
+}
+
+<section class="panel">
+  <div class="table-toolbar">
+    <span class="muted">{{ store.items().length }} đề tài</span>
+    <button class="button subtle" (click)="reload()" [disabled]="loading() || busy()">
+      ↻ Làm mới
+    </button>
+  </div>
+  <div class="table-scroll" [attr.aria-busy]="loading()">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã đề tài</th>
+          <th>Tên đề tài</th>
+          <th>Giảng viên hướng dẫn</th>
+          <th class="align-right">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="4" class="empty-cell">Đang tải danh sách…</td>
+          </tr>
+        } @else {
+          @for (item of store.items(); track item.MaDT) {
+            <tr>
+              <td>{{ item.MaDT }}</td>
+              <td class="wrap-cell">
+                <button class="student-name" (click)="open(item, 'detail')" [disabled]="busy()">
+                  {{ item.TenDT }}
+                </button>
+              </td>
+              <td>{{ item.GiangVienHD || 'Chưa có' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="text-button" (click)="open(item, 'detail')" [disabled]="busy()">
+                    Chi tiết
+                  </button>
+                  <button class="text-button" (click)="open(item, 'edit')" [disabled]="busy()">
+                    Sửa
+                  </button>
+                  <button
+                    class="text-button danger-text"
+                    (click)="askDelete(item)"
+                    [disabled]="busy()"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="empty-cell">
+                {{ error() ? 'Chưa tải được danh sách. Hãy thử làm mới.' : 'Chưa có đề tài.' }}
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+@if (mode()) {
+  <div class="modal-backdrop" (keydown.escape)="close()">
+    <section
+      class="modal"
+      appDialogFocus
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="de-tai-title"
+      tabindex="-1"
+    >
+      <div class="modal-heading">
+        <h2 id="de-tai-title">
+          {{
+            mode() === 'create'
+              ? 'Thêm đề tài'
+              : mode() === 'edit'
+                ? 'Sửa đề tài'
+                : mode() === 'delete'
+                  ? 'Xóa đề tài?'
+                  : 'Chi tiết đề tài'
+          }}
+        </h2>
+        <button class="icon-button" aria-label="Đóng" (click)="close()" [disabled]="busy()">
+          ✕
+        </button>
+      </div>
+      @if (error()) {
+        <p class="alert error" role="alert">{{ error() }}</p>
+      }
+      @if (mode() === 'delete') {
+        <p>
+          Bạn muốn xóa đề tài <strong>{{ current()?.TenDT }}</strong
+          >?
+        </p>
+        <p class="muted">Hãy xóa các đăng ký liên quan trước khi xóa đề tài.</p>
+        <div class="modal-actions">
+          <button class="button subtle" (click)="close()" [disabled]="busy()">Hủy</button>
+          <button class="button danger" (click)="remove()" [disabled]="busy()">
+            {{ busy() ? 'Đang xóa…' : 'Xóa đề tài' }}
+          </button>
+        </div>
+      } @else if (mode() === 'detail') {
+        <dl class="detail-grid">
+          <div>
+            <dt>Mã đề tài</dt>
+            <dd>{{ current()?.MaDT }}</dd>
+          </div>
+          <div>
+            <dt>Tên đề tài</dt>
+            <dd>{{ current()?.TenDT }}</dd>
+          </div>
+          <div>
+            <dt>Giảng viên hướng dẫn</dt>
+            <dd>{{ current()?.GiangVienHD || 'Chưa có' }}</dd>
+          </div>
+          <div>
+            <dt>Mô tả</dt>
+            <dd class="preserve-lines">{{ current()?.MoTa || 'Chưa có' }}</dd>
+          </div>
+        </dl>
+        <div class="modal-actions">
+          <button class="button subtle" (click)="close()">Đóng</button
+          ><button class="button primary" (click)="mode.set('edit')">Chỉnh sửa</button>
+        </div>
+      } @else {
+        <form #editor="ngForm" (ngSubmit)="save()">
+          <fieldset class="crud-fields" [disabled]="busy()">
+            <div class="form-grid">
+              <div class="span-two">
+                <label for="tenDT">Tên đề tài *</label
+                ><input id="tenDT" name="tenDT" [(ngModel)]="form.tenDT" required maxlength="200" />
+              </div>
+              <div class="span-two">
+                <label for="giangVienHD">Giảng viên hướng dẫn</label
+                ><input
+                  id="giangVienHD"
+                  name="giangVienHD"
+                  [(ngModel)]="form.giangVienHD"
+                  maxlength="100"
+                />
+              </div>
+              <div class="span-two">
+                <label for="moTa">Mô tả</label
+                ><textarea
+                  id="moTa"
+                  name="moTa"
+                  [(ngModel)]="form.moTa"
+                  maxlength="500"
+                  rows="4"
+                ></textarea>
+              </div>
+            </div>
+          </fieldset>
+          <div class="modal-actions">
+            <button type="button" class="button subtle" (click)="close()" [disabled]="busy()">
+              Hủy
+            </button>
+            <button type="submit" class="button primary" [disabled]="editor.invalid || busy()">
+              {{ busy() ? 'Đang lưu…' : 'Lưu đề tài' }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

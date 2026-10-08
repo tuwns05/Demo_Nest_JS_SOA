@@ -2,13 +2,13 @@
 
 Giao diện Angular cho backend NestJS hiện có. Mỗi service backend có component và Angular service riêng. Dữ liệu API được giữ bằng signals trong service; component phụ trách hiển thị và form.
 
-| Backend      | Component                       | Angular service | Chức năng                          |
-| ------------ | ------------------------------- | --------------- | ---------------------------------- |
-| gateway      | GatewayComponent                | GatewayService  | Tổng quan, health 4 service        |
-| svc-auth     | AuthComponent, AccountComponent | AuthService     | Đăng nhập, đăng xuất               |
-| svc-sinhvien | SinhVienComponent               | SinhVienService | Danh sách, chi tiết, tạo, sửa, xóa |
-| svc-detai    | DeTaiComponent                  | DeTaiService    | Health; chưa có CRUD ở backend     |
-| svc-dangky   | DangKyComponent                 | DangKyService   | Health; chưa có CRUD ở backend     |
+| Backend      | Component                       | Angular service | Chức năng                           |
+| ------------ | ------------------------------- | --------------- | ----------------------------------- |
+| gateway      | GatewayComponent                | GatewayService  | Tổng quan, health 4 service         |
+| svc-auth     | AuthComponent, AccountComponent | AuthService     | Đăng nhập, đăng xuất                |
+| svc-sinhvien | SinhVienComponent               | SinhVienService | Danh sách, chi tiết, tạo, sửa, xóa  |
+| svc-detai    | DeTaiComponent                  | DeTaiService    | Danh sách, chi tiết, tạo, sửa, xóa  |
+| svc-dangky   | DangKyComponent                 | DangKyService   | CRUD đăng ký, chọn sinh viên/đề tài |
 
 ## Chạy
 
@@ -19,7 +19,7 @@ npm.cmd install
 npm.cmd start
 ```
 
-Mở http://localhost:4200. Đăng nhập bằng tài khoản đã có trong bảng User; seed minh họa ở backend là demo / Demo@123456.
+Mở http://localhost:4200. Đăng nhập bằng tài khoản quản trị đã tạo trong SOA_AUTH.dbo.User (ví dụ admin / admin nếu đã tạo theo hướng dẫn).
 
 Form đăng nhập dành cho quản trị, gửi `{ user, password }` đến `/api/auth/login`. `user` là tên tài khoản `UserName` trong bảng User; không phải mã sinh viên. Thêm sinh viên không tự tạo tài khoản quản trị.
 
@@ -36,7 +36,9 @@ SessionService giữ JWT trong sessionStorage của tab và bộ nhớ, tự k�
 
 CRUD dùng đúng hợp đồng backend: dữ liệu trả về MaSV/HoTen/Email/Lop; body gửi maSV/hoTen/email/lop/matKhau. Khi sửa, mật khẩu trống được bỏ khỏi body. Mật khẩu không hiển thị lại. Tìm kiếm/lọc lớp xử lý trên danh sách đã tải; chưa có phân trang phía server.
 
-Đề tài và đăng ký chỉ gọi health, không tạo dữ liệu minh họa hoặc gọi endpoint CRUD chưa tồn tại. Gateway trả 503 kèm bản tổng hợp vẫn được hiển thị để biết service nào không khả dụng.
+Trang Đề tài gọi GET/POST /detai và GET/PATCH/DELETE /detai/:maDT. Trang Đăng ký gọi các API tương ứng /dangky, đồng thời tải /sinhvien và /detai để chọn mã từ danh sách. Body đăng ký gửi maDT dạng số; khi tạo, bỏ ngày trống để backend dùng ngày hiện tại. Mỗi Angular service giữ danh sách riêng và cập nhật sau thao tác thành công; thất bại giữ form và hiển thị lỗi. Cần thêm sinh viên và đề tài trước khi đăng ký. Xóa đăng ký liên quan trước khi xóa đề tài/sinh viên vì backend chưa tự xóa giữa database.
+
+Gateway trả 503 kèm bản tổng hợp vẫn được hiển thị để biết service nào không khả dụng.
 
 ## Kiểm tra
 

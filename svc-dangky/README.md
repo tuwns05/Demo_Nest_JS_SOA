@@ -1,6 +1,8 @@
 # svc-dangky
 
-Dịch vụ dangky; hiện chỉ có GET /dangky/health, kiểm tra SQL Server (200 hoặc 503). Chưa có CRUD. Hai client findById chưa được nối vào nghiệp vụ hay endpoint.
+Dịch vụ CRUD đăng ký, chỉ đọc/ghi `SOA_DANGKY.dbo.DANGKY`. API: `GET/POST /dangky`, `GET/PATCH/DELETE /dangky/:maDK`. Body tạo gồm `maSV` (chuỗi, tối đa 20 ký tự), `maDT` (số nguyên dương), tùy chọn `ngayDangKy` (`YYYY-MM-DD`) và `trangThai` (tối đa 50 ký tự). Bỏ ngày khi tạo dùng ngày hiện tại của SQL Server. PATCH nhận một hoặc nhiều trường trên. ID tự tăng.
+
+Khi tạo/sửa, hai HTTP client kiểm tra sinh viên và đề tài tồn tại, chuyển tiếp Bearer JWT. Không tìm thấy trả 404; không kết nối được trả 503 và không ghi dữ liệu. Các API nghiệp vụ cần JWT. `GET /dangky/health` công khai khi gọi trực tiếp service. Chưa chặn đăng ký trùng hoặc tự xóa liên quan giữa database.
 
 ## Biến môi trường
 
@@ -11,9 +13,10 @@ Dùng `JWT_SECRET` ít nhất 32 ký tự, giống svc-auth/gateway/svc-sinhvien
 | Biến riêng | Ý nghĩa |
 | --- | --- |
 | PORT | Cổng riêng của tiến trình |
+| DB_NAME | SOA_DANGKY, đặt trong .env của service |
 | SERVICE_URL_SINHVIEN, SERVICE_URL_DETAI | URL gốc cho hai client HTTP, timeout 5 giây |
 
-Cấu hình chung đọc từ ../.env: DB_HOST, DB_NAME bắt buộc cho service kết nối SQL; DB_PORT, DB_INSTANCE, DB_ODBC_DRIVER, DB_USER, DB_PASSWORD, DB_CONNECTION_STRING tùy cấu hình. Gateway và auth dùng JWT_SECRET chung; auth dùng JWT_EXPIRES_IN. Xem mẫu gốc và mẫu riêng, không commit .env.
+Cấu hình SQL Server và JWT_SECRET đọc từ ../.env; DB_NAME riêng đọc từ .env của service. Xem mẫu gốc và mẫu riêng, không commit .env.
 
 ## Chạy riêng
 

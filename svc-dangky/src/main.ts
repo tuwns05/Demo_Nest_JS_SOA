@@ -8,6 +8,7 @@ import {
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { isAxiosError } from 'axios';
 
 class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: any) {
@@ -17,7 +18,9 @@ class HttpExceptionFilter implements ExceptionFilter {
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : isAxiosError(exception)
+          ? (exception.response?.status ?? HttpStatus.SERVICE_UNAVAILABLE)
+          : HttpStatus.INTERNAL_SERVER_ERROR;
     const payload = {
       statusCode: status,
       message:
@@ -25,8 +28,13 @@ class HttpExceptionFilter implements ExceptionFilter {
           ? 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'
           : exception instanceof HttpException
             ? exception.getResponse()
-            : 'Lỗi không xác định',
-      error: status === HttpStatus.INTERNAL_SERVER_ERROR ? 'Internal Server Error' : 'Http Exception',
+            : isAxiosError(exception)
+              ? 'Không lấy được dữ liệu từ service sinh viên hoặc đề tài'
+              : 'Lỗi không xác định',
+      error:
+        status === HttpStatus.INTERNAL_SERVER_ERROR
+          ? 'Internal Server Error'
+          : 'Http Exception',
       timestamp: new Date().toISOString(),
       path: request.url,
     };
@@ -53,7 +61,9 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   const config = new DocumentBuilder()
     .setTitle('API đăng ký')
-    .setDescription('Nền tảng dịch vụ đăng ký và client HTTP; chưa có endpoint nghiệp vụ đăng ký.')
+    .setDescription(
+      'CRUD đăng ký, kiểm tra sinh viên và đề tài qua HTTP, yêu cầu Bearer JWT; health công khai.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

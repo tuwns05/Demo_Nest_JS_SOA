@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { ValidationPipe } from '@nestjs/common';
+import { CreateDeTaiDto, UpdateDeTaiDto } from '../src/dto/detai.dto.js';
 import { Test } from '@nestjs/testing';
 import { Controller, Get, Req, type INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -30,11 +32,28 @@ class ProtectedController {
 describe('detai authentication (HTTP)', () => {
   let app: INestApplication;
   const service = {
+    findAll: vi.fn().mockResolvedValue([]),
+    findOne: vi.fn().mockResolvedValue({ MaDT: 1 }),
+    create: vi.fn().mockResolvedValue({ message: 'created' }),
+    update: vi.fn().mockResolvedValue({ message: 'updated' }),
+    remove: vi.fn().mockResolvedValue({ message: 'deleted' }),
     getHealth: vi.fn().mockResolvedValue({ status: 'ok', service: 'detai' }),
   };
 
   beforeAll(async () => {
     Reflect.defineMetadata('design:paramtypes', [AppService], AppController);
+    Reflect.defineMetadata(
+      'design:paramtypes',
+      [CreateDeTaiDto, String],
+      AppController.prototype,
+      'create',
+    );
+    Reflect.defineMetadata(
+      'design:paramtypes',
+      [Number, UpdateDeTaiDto, String],
+      AppController.prototype,
+      'update',
+    );
     const module = await Test.createTestingModule({
       imports: [AppModule],
       controllers: [ProtectedController],
@@ -51,11 +70,100 @@ describe('detai authentication (HTTP)', () => {
       .compile();
     app = module.createNestApplication();
     app.setGlobalPrefix('detai');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
     await app.init();
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it.each(['get', 'post', 'patch', 'delete'] as const)(
+    'protects the %s CRUD endpoint',
+    async (method) => {
+      const path = ['patch', 'delete'].includes(method) ? '/detai/1' : '/detai';
+      await request(app.getHttpServer())
+        [method](path)
+        .send({ tenDT: 'Đề tài thử' })
+        .expect(401);
+      expect(service.findAll).not.toHaveBeenCalled();
+      expect(service.create).not.toHaveBeenCalled();
+      expect(service.update).not.toHaveBeenCalled();
+      expect(service.remove).not.toHaveBeenCalled();
+    },
+  );
+
+  it('protects detail access', async () => {
+    await request(app.getHttpServer()).get('/detai/1').expect(401);
+    expect(service.findOne).not.toHaveBeenCalled();
+  });
+
+  it('routes every CRUD operation with a valid JWT', async () => {
+    const authorization =
+      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+    await request(app.getHttpServer())
+      .get('/detai')
+      .set('Authorization', authorization)
+      .expect(200, []);
+    await request(app.getHttpServer())
+      .get('/detai/1')
+      .set('Authorization', authorization)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/detai')
+      .set('Authorization', authorization)
+      .send({ tenDT: 'Đề tài thử' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch('/detai/1')
+      .set('Authorization', authorization)
+      .send({ tenDT: 'Đề tài thử' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/detai/1')
+      .set('Authorization', authorization)
+      .expect(200);
+    expect(service.create).toHaveBeenCalledWith(
+      expect.objectContaining({ tenDT: 'Đề tài thử' }),
+    );
+    expect(service.update).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ tenDT: 'Đề tài thử' }),
+    );
+  });
+
+  it('rejects invalid bodies and IDs before the service', async () => {
+    const authorization =
+      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+    for (const body of [
+      {},
+      { tenDT: 'Đề tài thử', unexpected: true },
+      { tenDT: null },
+    ]) {
+      await request(app.getHttpServer())
+        .post('/detai')
+        .set('Authorization', authorization)
+        .send(body)
+        .expect(400);
+    }
+    await request(app.getHttpServer())
+      .patch('/detai/1')
+      .set('Authorization', authorization)
+      .send({ tenDT: null })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/detai/abc')
+      .set('Authorization', authorization)
+      .expect(400);
+    expect(service.create).not.toHaveBeenCalled();
+    expect(service.update).not.toHaveBeenCalled();
+    expect(service.findOne).not.toHaveBeenCalled();
   });
   afterAll(async () => {
     await app?.close();

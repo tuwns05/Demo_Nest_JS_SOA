@@ -53,7 +53,7 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   const config = new DocumentBuilder()
     .setTitle('API đề tài')
-    .setDescription('Nền tảng dịch vụ đề tài; hiện cung cấp kiểm tra kết nối cơ sở dữ liệu.')
+    .setDescription('CRUD đề tài, yêu cầu Bearer JWT; health công khai.')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

@@ -1,6 +1,6 @@
 # Demo NestJS SOA
 
-Nền tảng quản lý đồ án tốt nghiệp theo kiến trúc hướng dịch vụ, dùng NestJS 12, TypeScript ESM và SQL Server. Hiện có đăng nhập, JWT, health và CRUD sinh viên; đề tài và đăng ký chưa có CRUD.
+Nền tảng quản lý đồ án tốt nghiệp theo kiến trúc hướng dịch vụ, dùng NestJS 12, TypeScript ESM và SQL Server. Backend có đăng nhập, JWT, health và CRUD sinh viên, đề tài, đăng ký.
 
 ```mermaid
 flowchart LR
@@ -22,8 +22,8 @@ flowchart LR
 | gateway | 3000 | Không có | Không có |
 | svc-auth | 3004 | SOA_AUTH | dbo.User |
 | svc-sinhvien | 3001 | SOA_SINHVIEN | SINHVIEN, đã có CRUD |
-| svc-detai | 3002 | SOA_DETAI | DETAI, chưa có CRUD |
-| svc-dangky | 3003 | SOA_DANGKY | DANGKY, chưa có CRUD |
+| svc-detai | 3002 | SOA_DETAI | DETAI, CRUD |
+| svc-dangky | 3003 | SOA_DANGKY | DANGKY, CRUD |
 
 Mỗi service đặt DB_NAME trong .env riêng; thông tin SQL Server dùng chung từ .env gốc. Quyền truy cập chưa được giới hạn bằng tài khoản SQL riêng. Không có khóa ngoại giữa các database; kiểm tra quan hệ nghiệp vụ cần thực hiện qua service.
 
@@ -52,7 +52,7 @@ Chạy riêng: vào thư mục service rồi chạy `npm.cmd run start:dev` đ�
 
 ## Frontend Angular
 
-Frontend Angular nằm trong [FE_Demo_SOA_AG](FE_Demo_SOA_AG/README.md). Sau khi backend chạy, mở terminal trong thư mục đó, chạy `npm.cmd install` và `npm.cmd start`, rồi vào http://localhost:4200. Frontend có đăng nhập, CRUD sinh viên và trạng thái đề tài/đăng ký; mỗi service có component và Angular service riêng. Proxy phát triển chuyển `/api/*` đến gateway cổng 3000.
+Frontend Angular nằm trong [FE_Demo_SOA_AG](FE_Demo_SOA_AG/README.md). Sau khi backend chạy, mở terminal trong thư mục đó, chạy `npm.cmd install` và `npm.cmd start`, rồi vào http://localhost:4200. Frontend có đăng nhập và CRUD sinh viên, đề tài, đăng ký; mỗi service có component và Angular service riêng. Form đăng ký chọn sinh viên/đề tài từ API. Proxy phát triển chuyển `/api/*` đến gateway cổng 3000.
 
 ## Lỗi thường gặp
 
@@ -72,8 +72,8 @@ Frontend Angular nằm trong [FE_Demo_SOA_AG](FE_Demo_SOA_AG/README.md). Sau khi
 gateway/          Xác thực, chuyển tiếp HTTP và health tổng hợp
 svc-auth/         Đăng nhập và phát JWT
 svc-sinhvien/     CRUD sinh viên và health
-svc-detai/        Nền tảng đề tài, hiện chỉ health
-svc-dangky/       Nền tảng đăng ký và client HTTP
+svc-detai/        CRUD đề tài và health
+svc-dangky/       CRUD đăng ký, health và client HTTP
 shared/database/  Package pool SQL và truy vấn tham số
 db/               Schema User và seed minh họa
 docs/             Kiến trúc, học code và API

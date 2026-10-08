@@ -12,27 +12,27 @@ let hang = false;
 const server = createServer((req, res) => {
   if (hang) return;
   res.writeHead(status, { 'content-type': 'application/json' });
-  res.end(JSON.stringify({ path: req.url }));
+  res.end(JSON.stringify({ path: req.url, authorization: req.headers.authorization ?? null }));
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${server.address().port}`;
-const http = new HttpService();
+const http = new HttpService(require('axios').default.create({ timeout: 5000, maxRedirects: 0 }));
 const config = new ConfigService({ SERVICE_URL_SINHVIEN: url, SERVICE_URL_DETAI: url });
 const clients = [new SinhVienClient(http, config), new DeTaiClient(http, config)];
 const close = () => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); });
 try {
   for (const [index, client] of clients.entries()) {
-    assert.deepEqual(await client.findById('a/b'), { path: `/${index === 0 ? 'sinhvien' : 'detai'}/a%2Fb` });
+    assert.deepEqual(await client.findById('a/b', 'Bearer test-jwt'), { path: `/${index === 0 ? 'sinhvien' : 'detai'}/a%2Fb`, authorization: 'Bearer test-jwt' });
   }
   status = 404;
-  for (const client of clients) await assert.rejects(client.findById(9), error => error.getStatus() === 404 && error.message.includes('9'));
+  for (const client of clients) await assert.rejects(client.findById(9), error => error.response?.status === 404);
   status = 500;
-  for (const client of clients) await assert.rejects(client.findById(9), error => error.getStatus() === 500);
+  for (const client of clients) await assert.rejects(client.findById(9), error => error.response?.status === 500);
   hang = true;
   const start = Date.now();
-  await Promise.all(clients.map(client => assert.rejects(client.findById(9), error => error.getStatus() === 503)));
+  await Promise.all(clients.map(client => assert.rejects(client.findById(9), error => error.code === 'ECONNABORTED')));
   assert.ok(Date.now() - start >= 4900 && Date.now() - start < 7000);
   await close();
-  for (const client of clients) await assert.rejects(client.findById(9), error => error.getStatus() === 503);
-  console.log('PASS: hai client giữ URL/encode ID; dữ liệu 200; lỗi 404; HTTP 500; timeout 5s và kết nối hỏng 503.');
+  for (const client of clients) await assert.rejects(client.findById(9), error => !error.response && error.isAxiosError);
+  console.log('PASS: GET trả dữ liệu và gửi JWT; lỗi HTTP/kết nối được Axios ném ra; timeout 5s.');
 } finally { await close(); }

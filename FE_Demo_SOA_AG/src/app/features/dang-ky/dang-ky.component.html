@@ -1,0 +1,217 @@
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">QUẢN LÝ ĐỒ ÁN</span>
+    <h1>Đăng ký</h1>
+    <p class="muted">Quản lý đăng ký đề tài của sinh viên.</p>
+  </div>
+  <button
+    class="button primary"
+    (click)="openCreate()"
+    [disabled]="loading() || busy() || !students.students().length || !topics.items().length"
+  >
+    ＋ Thêm đăng ký
+  </button>
+</section>
+@if (message()) {
+  <p class="alert success" role="status">{{ message() }}</p>
+}
+@if (error() && !mode()) {
+  <p class="alert error" role="alert">{{ error() }}</p>
+}
+@if (!loading() && !error() && (!students.students().length || !topics.items().length)) {
+  <p class="notice">
+    Cần có sinh viên và đề tài trước khi tạo đăng ký. Thêm dữ liệu ở các trang Sinh viên và Đề tài
+    rồi làm mới danh sách.
+  </p>
+}
+<section class="panel">
+  <div class="table-toolbar">
+    <span class="muted">{{ store.items().length }} đăng ký</span>
+    <button class="button subtle" (click)="reload()" [disabled]="loading() || busy()">
+      ↻ Làm mới
+    </button>
+  </div>
+  <div class="table-scroll" [attr.aria-busy]="loading()">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã đăng ký</th>
+          <th>Sinh viên</th>
+          <th>Đề tài</th>
+          <th>Ngày đăng ký</th>
+          <th>Trạng thái</th>
+          <th class="align-right">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="6" class="empty-cell">Đang tải danh sách…</td>
+          </tr>
+        } @else {
+          @for (item of store.items(); track item.MaDK) {
+            <tr>
+              <td>{{ item.MaDK }}</td>
+              <td class="wrap-cell">
+                {{ item.MaSV }}<br /><span class="muted">{{ studentName(item.MaSV) }}</span>
+              </td>
+              <td class="wrap-cell">{{ item.MaDT }} — {{ topicName(item.MaDT) }}</td>
+              <td>{{ item.NgayDangKy?.slice(0, 10) || 'Chưa có' }}</td>
+              <td>{{ item.TrangThai || 'Chưa có' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="text-button" (click)="open(item, 'detail')" [disabled]="busy()">
+                    Chi tiết
+                  </button>
+                  <button class="text-button" (click)="open(item, 'edit')" [disabled]="busy()">
+                    Sửa
+                  </button>
+                  <button
+                    class="text-button danger-text"
+                    (click)="askDelete(item)"
+                    [disabled]="busy()"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="empty-cell">
+                {{ error() ? 'Chưa tải được danh sách. Hãy thử làm mới.' : 'Chưa có đăng ký.' }}
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+@if (mode()) {
+  <div class="modal-backdrop" (keydown.escape)="close()">
+    <section
+      class="modal"
+      appDialogFocus
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dang-ky-title"
+      tabindex="-1"
+    >
+      <div class="modal-heading">
+        <h2 id="dang-ky-title">
+          {{
+            mode() === 'create'
+              ? 'Thêm đăng ký'
+              : mode() === 'edit'
+                ? 'Sửa đăng ký'
+                : mode() === 'delete'
+                  ? 'Xóa đăng ký?'
+                  : 'Chi tiết đăng ký'
+          }}
+        </h2>
+        <button class="icon-button" aria-label="Đóng" (click)="close()" [disabled]="busy()">
+          ✕
+        </button>
+      </div>
+      @if (error()) {
+        <p class="alert error" role="alert">{{ error() }}</p>
+      }
+      @if (mode() === 'delete') {
+        <p>
+          Bạn muốn xóa đăng ký <strong>#{{ current()?.MaDK }}</strong
+          >?
+        </p>
+
+        <div class="modal-actions">
+          <button class="button subtle" (click)="close()" [disabled]="busy()">Hủy</button>
+          <button class="button danger" (click)="remove()" [disabled]="busy()">
+            {{ busy() ? 'Đang xóa…' : 'Xóa đăng ký' }}
+          </button>
+        </div>
+      } @else if (mode() === 'detail') {
+        <dl class="detail-grid">
+          <div>
+            <dt>Mã đăng ký</dt>
+            <dd>{{ current()?.MaDK }}</dd>
+          </div>
+          <div>
+            <dt>Sinh viên</dt>
+            <dd>{{ current()?.MaSV }} — {{ studentName(current()!.MaSV) }}</dd>
+          </div>
+          <div>
+            <dt>Đề tài</dt>
+            <dd>{{ current()?.MaDT }} — {{ topicName(current()!.MaDT) }}</dd>
+          </div>
+          <div>
+            <dt>Ngày đăng ký</dt>
+            <dd>{{ current()?.NgayDangKy?.slice(0, 10) || 'Chưa có' }}</dd>
+          </div>
+          <div>
+            <dt>Trạng thái</dt>
+            <dd>{{ current()?.TrangThai || 'Chưa có' }}</dd>
+          </div>
+        </dl>
+        <div class="modal-actions">
+          <button class="button subtle" (click)="close()">Đóng</button
+          ><button class="button primary" (click)="mode.set('edit')">Chỉnh sửa</button>
+        </div>
+      } @else {
+        <form #editor="ngForm" (ngSubmit)="save()">
+          <fieldset class="crud-fields" [disabled]="busy()">
+            <div class="form-grid">
+              <div class="span-two">
+                <label for="maSV">Sinh viên *</label>
+                <select id="maSV" name="maSV" [(ngModel)]="form.maSV" required>
+                  <option value="">Chọn sinh viên</option>
+                  @for (student of students.students(); track student.MaSV) {
+                    <option [value]="student.MaSV">{{ student.MaSV }} — {{ student.HoTen }}</option>
+                  }
+                </select>
+              </div>
+              <div class="span-two">
+                <label for="maDT">Đề tài *</label>
+                <select id="maDT" name="maDT" [(ngModel)]="form.maDT" required>
+                  <option [ngValue]="null">Chọn đề tài</option>
+                  @for (topic of topics.items(); track topic.MaDT) {
+                    <option [ngValue]="+topic.MaDT">{{ topic.MaDT }} — {{ topic.TenDT }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label for="ngayDangKy">Ngày đăng ký</label
+                ><input
+                  id="ngayDangKy"
+                  name="ngayDangKy"
+                  [(ngModel)]="form.ngayDangKy"
+                  type="date"
+                  min="0001-01-01"
+                  max="9999-12-31"
+                />
+                <small class="muted">Khi tạo, để trống để dùng ngày hiện tại.</small>
+              </div>
+              <div>
+                <label for="trangThai">Trạng thái</label
+                ><input
+                  id="trangThai"
+                  name="trangThai"
+                  [(ngModel)]="form.trangThai"
+                  maxlength="50"
+                  placeholder="VD: Chờ duyệt"
+                />
+              </div>
+            </div>
+          </fieldset>
+          <div class="modal-actions">
+            <button type="button" class="button subtle" (click)="close()" [disabled]="busy()">
+              Hủy
+            </button>
+            <button type="submit" class="button primary" [disabled]="editor.invalid || busy()">
+              {{ busy() ? 'Đang lưu…' : 'Lưu đăng ký' }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

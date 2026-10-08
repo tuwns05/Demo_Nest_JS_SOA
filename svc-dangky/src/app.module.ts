@@ -29,7 +29,7 @@ import { DeTaiClient } from './clients/detai.client.js';
       },
     }),
     DatabaseModule.register(),
-    HttpModule.register({ timeout: 5000 }),
+    HttpModule.register({ timeout: 5000, maxRedirects: 0 }),
   ],
   controllers: [AppController],
   providers: [

@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { ValidationPipe } from '@nestjs/common';
+import { CreateDangKyDto, UpdateDangKyDto } from '../src/dto/dangky.dto.js';
 import { Test } from '@nestjs/testing';
 import { Controller, Get, Req, type INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -30,11 +32,28 @@ class ProtectedController {
 describe('dangky authentication (HTTP)', () => {
   let app: INestApplication;
   const service = {
+    findAll: vi.fn().mockResolvedValue([]),
+    findOne: vi.fn().mockResolvedValue({ MaDK: 1 }),
+    create: vi.fn().mockResolvedValue({ message: 'created' }),
+    update: vi.fn().mockResolvedValue({ message: 'updated' }),
+    remove: vi.fn().mockResolvedValue({ message: 'deleted' }),
     getHealth: vi.fn().mockResolvedValue({ status: 'ok', service: 'dangky' }),
   };
 
   beforeAll(async () => {
     Reflect.defineMetadata('design:paramtypes', [AppService], AppController);
+    Reflect.defineMetadata(
+      'design:paramtypes',
+      [CreateDangKyDto, String],
+      AppController.prototype,
+      'create',
+    );
+    Reflect.defineMetadata(
+      'design:paramtypes',
+      [Number, UpdateDangKyDto, String],
+      AppController.prototype,
+      'update',
+    );
     const module = await Test.createTestingModule({
       imports: [AppModule],
       controllers: [ProtectedController],
@@ -51,11 +70,104 @@ describe('dangky authentication (HTTP)', () => {
       .compile();
     app = module.createNestApplication();
     app.setGlobalPrefix('dangky');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
     await app.init();
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it.each(['get', 'post', 'patch', 'delete'] as const)(
+    'protects the %s CRUD endpoint',
+    async (method) => {
+      const path = ['patch', 'delete'].includes(method)
+        ? '/dangky/1'
+        : '/dangky';
+      await request(app.getHttpServer())
+        [method](path)
+        .send({ maSV: 'SV001', maDT: 1 })
+        .expect(401);
+      expect(service.findAll).not.toHaveBeenCalled();
+      expect(service.create).not.toHaveBeenCalled();
+      expect(service.update).not.toHaveBeenCalled();
+      expect(service.remove).not.toHaveBeenCalled();
+    },
+  );
+
+  it('protects detail access', async () => {
+    await request(app.getHttpServer()).get('/dangky/1').expect(401);
+    expect(service.findOne).not.toHaveBeenCalled();
+  });
+
+  it('routes every CRUD operation with a valid JWT', async () => {
+    const authorization =
+      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+    await request(app.getHttpServer())
+      .get('/dangky')
+      .set('Authorization', authorization)
+      .expect(200, []);
+    await request(app.getHttpServer())
+      .get('/dangky/1')
+      .set('Authorization', authorization)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/dangky')
+      .set('Authorization', authorization)
+      .send({ maSV: 'SV001', maDT: 1 })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch('/dangky/1')
+      .set('Authorization', authorization)
+      .send({ maSV: 'SV001', maDT: 1 })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/dangky/1')
+      .set('Authorization', authorization)
+      .expect(200);
+    expect(service.create).toHaveBeenCalledWith(
+      expect.objectContaining({ maSV: 'SV001', maDT: 1 }),
+      authorization,
+    );
+    expect(service.update).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ maSV: 'SV001', maDT: 1 }),
+      authorization,
+    );
+  });
+
+  it('rejects invalid bodies and IDs before the service', async () => {
+    const authorization =
+      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+    for (const body of [
+      {},
+      { maSV: 'SV001', maDT: 1, unexpected: true },
+      { maSV: 'SV001', maDT: null },
+    ]) {
+      await request(app.getHttpServer())
+        .post('/dangky')
+        .set('Authorization', authorization)
+        .send(body)
+        .expect(400);
+    }
+    await request(app.getHttpServer())
+      .patch('/dangky/1')
+      .set('Authorization', authorization)
+      .send({ maSV: null })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/dangky/abc')
+      .set('Authorization', authorization)
+      .expect(400);
+    expect(service.create).not.toHaveBeenCalled();
+    expect(service.update).not.toHaveBeenCalled();
+    expect(service.findOne).not.toHaveBeenCalled();
   });
   afterAll(async () => {
     await app?.close();

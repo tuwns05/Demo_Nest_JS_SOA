@@ -1,6 +1,8 @@
 @baseUrl = http://localhost:3000
 @token = {{login.response.body.$.access_token}}
 @maSV = SV_DEMO_001
+@maDT = {{createDeTai.response.body.$.data.MaDT}}
+@maDK = {{createDangKy.response.body.$.data.MaDK}}
 
 ### Tạo sinh viên (đăng nhập trước)
 POST {{baseUrl}}/sinhvien
@@ -33,22 +35,76 @@ Content-Type: application/json
   "lop": "CNTT02"
 }
 
-### Xóa sinh viên mẫu
-DELETE {{baseUrl}}/sinhvien/{{maSV}}
-Authorization: Bearer {{token}}
-
 ### Đăng nhập trước để lấy token (cú pháp VS Code REST Client)
 # @name login
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "user": "demo",
-  "password": "Demo@123456"
+  "user": "admin",
+  "password": "admin"
 }
 
 ### Health gateway công khai; 200 khi cả bốn service up
 GET {{baseUrl}}/health
+
+### Tạo đề tài (sau đăng nhập)
+# @name createDeTai
+POST {{baseUrl}}/detai
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "tenDT": "Quản lý đồ án", "moTa": "Ứng dụng SOA", "giangVienHD": "Nguyễn Văn A" }
+
+### Danh sách đề tài
+GET {{baseUrl}}/detai
+Authorization: Bearer {{token}}
+
+### Chi tiết đề tài
+GET {{baseUrl}}/detai/{{maDT}}
+Authorization: Bearer {{token}}
+
+### Sửa đề tài
+PATCH {{baseUrl}}/detai/{{maDT}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "moTa": "Mô tả mới" }
+
+### Tạo đăng ký (tạo sinh viên mẫu và đề tài trước; chưa xóa sinh viên)
+# @name createDangKy
+POST {{baseUrl}}/dangky
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "maSV": "{{maSV}}", "maDT": {{maDT}}, "trangThai": "Chờ duyệt" }
+
+### Danh sách đăng ký
+GET {{baseUrl}}/dangky
+Authorization: Bearer {{token}}
+
+### Chi tiết đăng ký
+GET {{baseUrl}}/dangky/{{maDK}}
+Authorization: Bearer {{token}}
+
+### Sửa đăng ký
+PATCH {{baseUrl}}/dangky/{{maDK}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "trangThai": "Đã duyệt" }
+
+### Xóa đăng ký trước khi xóa đề tài/sinh viên
+DELETE {{baseUrl}}/dangky/{{maDK}}
+Authorization: Bearer {{token}}
+
+### Xóa đề tài mẫu
+DELETE {{baseUrl}}/detai/{{maDT}}
+Authorization: Bearer {{token}}
+
+### Xóa sinh viên mẫu sau khi đã xóa đăng ký
+DELETE {{baseUrl}}/sinhvien/{{maSV}}
+Authorization: Bearer {{token}}
 
 ### Health xác thực qua gateway
 GET {{baseUrl}}/auth/health

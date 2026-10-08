@@ -1,6 +1,6 @@
 # Demo NestJS SOA
 
-Nền tảng quản lý đồ án tốt nghiệp theo kiến trúc hướng dịch vụ, dùng NestJS 12, TypeScript ESM và SQL Server. Hiện có đăng nhập, JWT và health; chưa có CRUD nghiệp vụ.
+Nền tảng quản lý đồ án tốt nghiệp theo kiến trúc hướng dịch vụ, dùng NestJS 12, TypeScript ESM và SQL Server. Hiện có đăng nhập, JWT, health và CRUD sinh viên; đề tài và đăng ký chưa có CRUD.
 
 ```mermaid
 flowchart LR
@@ -18,7 +18,7 @@ flowchart LR
 | --- | --- | --- |
 | gateway | 3000 | Không có |
 | svc-auth | 3004 | dbo.User |
-| svc-sinhvien | 3001 | SINHVIEN, chưa triển khai |
+| svc-sinhvien | 3001 | SINHVIEN, đã có CRUD |
 | svc-detai | 3002 | DETAI, chưa triển khai |
 | svc-dangky | 3003 | DANGKY, chưa triển khai |
 
@@ -62,7 +62,7 @@ Chạy riêng: vào thư mục service rồi chạy `npm.cmd run start:dev` đ�
 ```text
 gateway/          Xác thực, chuyển tiếp HTTP và health tổng hợp
 svc-auth/         Đăng nhập và phát JWT
-svc-sinhvien/     Nền tảng sinh viên, hiện chỉ health
+svc-sinhvien/     CRUD sinh viên và health
 svc-detai/        Nền tảng đề tài, hiện chỉ health
 svc-dangky/       Nền tảng đăng ký và client HTTP
 shared/database/  Package pool SQL và truy vấn tham số

@@ -9,6 +9,11 @@ Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công k
 | GET | /health | 200 status ok khi cả bốn up; 503 degraded nếu có down |
 | GET | /auth/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /sinhvien/health | Kiểm tra DB; 200 hoặc 503 |
+| POST | /sinhvien | Body maSV/hoTen/email/lop/matKhau; 201 message và data |
+| GET | /sinhvien | 200 mảng sinh viên, không có mật khẩu |
+| GET | /sinhvien/:maSV | 200 thông tin sinh viên; 404 nếu không tồn tại |
+| PATCH | /sinhvien/:maSV | Cập nhật hoTen/email/lop/matKhau; 200 message và data; 400 nếu body rỗng/sai |
+| DELETE | /sinhvien/:maSV | 200 message và data; 404 không tồn tại; 409 nếu có khóa ngoại tham chiếu |
 | GET | /detai/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /dangky/health | Kiểm tra DB; 200 hoặc 503 |
 
@@ -18,7 +23,6 @@ Swagger trực tiếp ở /api từng service, chưa có Swagger tổng hợp. R
 
 | Method | Route | Thành công dự kiến | Lỗi dự kiến |
 | --- | --- | --- | --- |
-| GET | /sinhvien/:id | 200 JSON có id sinh viên | 404 không có sinh viên; 503 lỗi kết nối |
 | GET | /detai/:id | 200 JSON có id đề tài | 404 không có đề tài; 503 lỗi kết nối |
 
-Chưa chốt trường nghiệp vụ và kiểu ID; client nhận string/number, trả JSON upstream. Service thật hiện trả 404 cho hai route này. Chưa có API tạo đăng ký, CRUD hay phân trang. Gateway giữ query nhưng chưa có nghiệp vụ xử lý query.
+Sinh viên dùng mã `maSV` dạng chuỗi và đã có CRUD; xem `svc-sinhvien/README.md`. Giữ API tạo cũ `/sinhvien/sinh-vien/create`. Đề tài chưa có endpoint lấy theo mã; đăng ký chưa có CRUD. Danh sách sinh viên chưa phân trang. Gateway giữ query nhưng chưa có nghiệp vụ xử lý query.

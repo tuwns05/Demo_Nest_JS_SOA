@@ -1,6 +1,23 @@
 # svc-sinhvien
 
-Dịch vụ sinh viên có `GET /sinhvien/sinh-vien/health` và `POST /sinhvien/sinh-vien/create`.
+Dịch vụ sinh viên cung cấp CRUD. Các đường dẫn dưới đây dùng được qua gateway cổng 3000 hoặc trực tiếp cổng 3001:
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /sinhvien/health | Kiểm tra DB, công khai tại service |
+| POST | /sinhvien | Tạo sinh viên, trả 201 |
+| GET | /sinhvien | Danh sách sinh viên, sắp xếp theo MaSV |
+| GET | /sinhvien/:maSV | Chi tiết sinh viên |
+| PATCH | /sinhvien/:maSV | Cập nhật các trường được gửi |
+| DELETE | /sinhvien/:maSV | Xóa sinh viên |
+
+Giữ tương thích `POST /sinhvien/create` và các đường dẫn cũ dưới `/sinhvien/sinh-vien`, bao gồm `/create` và `/health`.
+
+Body tạo gồm `maSV`, `hoTen`, `email`, `lop`, `matKhau` (tối thiểu 6 ký tự). Body cập nhật cho phép `hoTen`, `email`, `lop`, `matKhau`; không đổi `maSV`, không chấp nhận body rỗng, giá trị null hoặc trường lạ. API không trả `MatKhau`. Danh sách trả mảng; chi tiết trả đối tượng; tạo/cập nhật/xóa trả `{ message, data }`.
+
+Lỗi: 400 dữ liệu không hợp lệ; 401 JWT thiếu/sai; 404 mã không tồn tại; 409 trùng dữ liệu hoặc xóa bị khóa ngoại chặn. Xóa không tự xóa dữ liệu đăng ký liên quan.
+
+Nếu DB chưa có `SINHVIEN`, chạy `db/sinhvien.sql` trong database ứng dụng. Nếu đã có bảng, kiểm tra các cột `MaSV`, `HoTen`, `Email`, `Lop`, `MatKhau`; script không tự migrate bảng có sẵn. Tài khoản ứng dụng cần quyền SELECT/INSERT/UPDATE/DELETE trên bảng này. Mẫu gọi API nằm trong `docs/api-test.http`.
 
 ## Xác thực
 

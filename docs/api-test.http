@@ -1,5 +1,41 @@
 @baseUrl = http://localhost:3000
 @token = {{login.response.body.$.access_token}}
+@maSV = SV_DEMO_001
+
+### Tạo sinh viên (đăng nhập trước)
+POST {{baseUrl}}/sinhvien
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maSV": "{{maSV}}",
+  "hoTen": "Nguyễn Văn A",
+  "email": "sv.demo.001@example.com",
+  "lop": "CNTT01",
+  "matKhau": "Demo@123456"
+}
+
+### Danh sách sinh viên
+GET {{baseUrl}}/sinhvien
+Authorization: Bearer {{token}}
+
+### Chi tiết sinh viên
+GET {{baseUrl}}/sinhvien/{{maSV}}
+Authorization: Bearer {{token}}
+
+### Cập nhật một phần thông tin sinh viên
+PATCH {{baseUrl}}/sinhvien/{{maSV}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "hoTen": "Nguyễn Văn B",
+  "lop": "CNTT02"
+}
+
+### Xóa sinh viên mẫu
+DELETE {{baseUrl}}/sinhvien/{{maSV}}
+Authorization: Bearer {{token}}
 
 ### Đăng nhập trước để lấy token (cú pháp VS Code REST Client)
 # @name login

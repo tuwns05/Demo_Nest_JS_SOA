@@ -1,25 +1,33 @@
 import {
-    IsEmail,
-    IsOptional,
-    IsString,
-    MinLength,
+  IsEmail,
+  IsNotEmpty,
+  ValidateIf,
+  IsString,
+  MinLength,
+  MaxLength,
 } from 'class-validator';
 
 export class UpdateSinhVienDto {
-    @IsOptional()
-    @IsString()
-    hoTen?: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  hoTen?: string;
 
-    @IsOptional()
-    @IsEmail()
-    email?: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsEmail()
+  @MaxLength(254)
+  email?: string;
 
-    @IsOptional()
-    @IsString()
-    lop?: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  lop?: string;
 
-    @IsOptional()
-    @IsString()
-    @MinLength(6)
-    matKhau?: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(6)
+  @MaxLength(255)
+  matKhau?: string;
 }

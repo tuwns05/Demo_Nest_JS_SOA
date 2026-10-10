@@ -1,84 +1,206 @@
-# Demo NestJS SOA
+# Demo SOA — Quản lý đồ án tốt nghiệp
 
-Nền tảng quản lý đồ án tốt nghiệp theo kiến trúc hướng dịch vụ, dùng NestJS 12, TypeScript ESM và SQL Server. Backend có đăng nhập, JWT, health và CRUD sinh viên, đề tài, đăng ký.
+Dự án demo xây dựng các dịch vụ web bằng **NestJS** cho bài toán khoa quản lý đồ án tốt nghiệp của sinh viên theo **kiến trúc hướng dịch vụ (SOA)**. Các dịch vụ có trách nhiệm riêng, chạy trong các tiến trình độc lập và phối hợp qua **HTTP/REST**, trao đổi dữ liệu JSON.
+
+Ba nghiệp vụ chính sử dụng các bảng **SINHVIEN**, **DETAI** và **DANGKY** trong SQL Server. Giao diện Angular hỗ trợ thao tác CRUD; dịch vụ xác thực và gateway hỗ trợ đăng nhập, bảo vệ API và truy cập hệ thống.
+
+## 1. Yêu cầu và phạm vi demo
+
+| Yêu cầu bài thực hành | Cách thể hiện trong dự án |
+| --- | --- |
+| Dùng framework đã nghiên cứu để cài đặt dịch vụ web | NestJS xây dựng controller, xử lý nghiệp vụ và kết nối SQL Server |
+| Dịch vụ độc lập | Mỗi service có `package.json`, điểm khởi động, cấu hình và cổng HTTP riêng; có thể chạy riêng từng tiến trình |
+| Phối hợp và trao đổi dữ liệu qua HTTP/REST | Gateway chuyển tiếp yêu cầu; dịch vụ đăng ký gọi API sinh viên và đề tài khi tạo/sửa đăng ký |
+| Giao tiếp qua giao thức chuẩn | HTTP, các phương thức GET/POST/PATCH/DELETE và dữ liệu JSON; có Swagger tại từng service |
+| Có thể tái sử dụng | API nghiệp vụ phục vụ Angular, công cụ thử API hoặc ứng dụng khác; dịch vụ đăng ký tái sử dụng API tra cứu sinh viên và đề tài |
+| CRUD cơ bản của bài toán | Thêm, xem danh sách/chi tiết, sửa và xóa sinh viên, đề tài, đăng ký |
+
+Ba dịch vụ sinh viên, đề tài và đăng ký là trọng tâm nghiệp vụ SOA. Đăng nhập JWT, health check và giao diện Angular là các phần hỗ trợ trình diễn.
+
+## 2. Kiến trúc hệ thống
 
 ```mermaid
 flowchart LR
-  C[Client] --> G[Gateway :3000]
-  G --> A[Auth :3004]
+  UI[Frontend Angular :4200] -->|HTTP/REST JSON| G[Gateway :3000]
+  G --> A[Xác thực :3004]
   G --> S[Sinh viên :3001]
   G --> D[Đề tài :3002]
   G --> K[Đăng ký :3003]
-  K -. Client HTTP .-> S
-  K -. Client HTTP .-> D
-  A --> DBA[(SOA_AUTH)]
-  S --> DBS[(SOA_SINHVIEN)]
-  D --> DBD[(SOA_DETAI)]
-  K --> DBK[(SOA_DANGKY)]
+  K -->|Tra cứu qua HTTP/REST| S
+  K -->|Tra cứu qua HTTP/REST| D
+  A --> DBA[(SOA_AUTH / User)]
+  S --> DBS[(SOA_SINHVIEN / SINHVIEN)]
+  D --> DBD[(SOA_DETAI / DETAI)]
+  K --> DBK[(SOA_DANGKY / DANGKY)]
 ```
 
-| Thành phần | Cổng | Database | Bảng sở hữu |
+| Thành phần | Cổng | Trách nhiệm | Database |
 | --- | --- | --- | --- |
-| gateway | 3000 | Không có | Không có |
-| svc-auth | 3004 | SOA_AUTH | dbo.User |
-| svc-sinhvien | 3001 | SOA_SINHVIEN | SINHVIEN, đã có CRUD |
-| svc-detai | 3002 | SOA_DETAI | DETAI, CRUD |
-| svc-dangky | 3003 | SOA_DANGKY | DANGKY, CRUD |
+| `gateway` | 3000 | Xác thực yêu cầu, định tuyến và tổng hợp health | Không có |
+| `svc-auth` | 3004 | Kiểm tra tài khoản, mật khẩu bcrypt và phát JWT | `SOA_AUTH` |
+| `svc-sinhvien` | 3001 | CRUD sinh viên | `SOA_SINHVIEN` |
+| `svc-detai` | 3002 | CRUD đề tài | `SOA_DETAI` |
+| `svc-dangky` | 3003 | CRUD đăng ký, kiểm tra sinh viên/đề tài qua API | `SOA_DANGKY` |
+| `FE_Demo_SOA_AG` | 4200 | Giao diện đăng nhập và quản lý ba nghiệp vụ | Không có |
 
-Mỗi service đặt DB_NAME trong .env riêng; thông tin SQL Server dùng chung từ .env gốc. Quyền truy cập chưa được giới hạn bằng tài khoản SQL riêng. Không có khóa ngoại giữa các database; kiểm tra quan hệ nghiệp vụ cần thực hiện qua service.
+Mỗi dịch vụ nghiệp vụ truy vấn database của mình. Dịch vụ đăng ký tra cứu sinh viên và đề tài qua API thay vì truy vấn trực tiếp database của hai dịch vụ đó.
 
-## Chạy nhanh
+Các database hiện cùng nằm trên một SQL Server instance. Cấu hình máy chủ và JWT dùng chung từ `.env` gốc; từng service đặt `DB_NAME` trong `.env` riêng. Quyền SQL chưa được giới hạn bằng tài khoản riêng cho mỗi service.
 
-Cần Windows, PowerShell, Node.js 24 LTS, npm, SQL Server và Microsoft ODBC Driver 17 for SQL Server phù hợp kiến trúc Node. Windows Authentication dùng tài khoản chạy tiến trình; SQL Authentication cần DB_USER và DB_PASSWORD.
+## 3. Chức năng và API chính
 
-Từ thư mục gốc:
+| Nghiệp vụ | Chức năng | Đường dẫn qua gateway |
+| --- | --- | --- |
+| Xác thực | Đăng nhập, nhận JWT | `POST /auth/login` |
+| Sinh viên | Thêm, xem danh sách/chi tiết, sửa, xóa | `/sinhvien`, `/sinhvien/:maSV` |
+| Đề tài | Thêm, xem danh sách/chi tiết, sửa, xóa | `/detai`, `/detai/:maDT` |
+| Đăng ký | Thêm, xem danh sách/chi tiết, sửa, xóa | `/dangky`, `/dangky/:maDK` |
+| Health | Kiểm tra trạng thái các dịch vụ | `GET /health` |
+
+Quy ước CRUD: `POST` tạo mới, `GET` đọc dữ liệu, `PATCH` cập nhật, `DELETE` xóa. Các API CRUD yêu cầu `Authorization: Bearer <token>`, bao gồm khi gọi trực tiếp service.
+
+Frontend có màn hình riêng cho từng nghiệp vụ. Form đăng ký lấy danh sách sinh viên và đề tài từ API để người dùng chọn.
+
+Xem trường dữ liệu và hợp đồng tại [tài liệu API](docs/API.md); thử yêu cầu bằng [api-test.http](docs/api-test.http).
+
+## 4. Luồng phối hợp minh họa SOA
+
+Khi tạo đăng ký đề tài, dịch vụ đăng ký gọi hai dịch vụ khác để kiểm tra mã sinh viên và mã đề tài trước khi lưu:
+
+```mermaid
+sequenceDiagram
+  participant UI as Frontend
+  participant G as Gateway
+  participant K as Dịch vụ đăng ký
+  participant S as Dịch vụ sinh viên
+  participant D as Dịch vụ đề tài
+  participant DB as SOA_DANGKY
+  UI->>G: POST /dangky + Bearer JWT
+  G->>G: Xác minh JWT
+  G->>K: Chuyển tiếp yêu cầu và token
+  K->>S: GET /sinhvien/:maSV + token
+  S-->>K: Thông tin sinh viên
+  K->>D: GET /detai/:maDT + token
+  D-->>K: Thông tin đề tài
+  K->>DB: INSERT DANGKY
+  DB-->>K: Bản ghi vừa tạo
+  K-->>G: Kết quả tạo đăng ký
+  G-->>UI: HTTP 201 + JSON
+```
+
+Luồng này đã có trong [dịch vụ đăng ký](svc-dangky/src/app.service.ts) và [các client HTTP](svc-dangky/src/clients). Khi kiểm tra tham chiếu thất bại, thao tác không tiếp tục ghi đăng ký. Luồng cập nhật cũng kiểm tra sinh viên và đề tài qua API.
+
+API sinh viên và đề tài phục vụ đồng thời giao diện quản lý và dịch vụ đăng ký, thể hiện khả năng tái sử dụng dịch vụ qua hợp đồng HTTP.
+
+## 5. Công nghệ sử dụng
+
+- **Backend:** NestJS 12, TypeScript ESM, HTTP/REST và Axios.
+- **Frontend:** Angular 22, Angular service và proxy phát triển đến gateway.
+- **Database:** SQL Server, `mssql`/`msnodesqlv8`, Microsoft ODBC Driver 17.
+- **Xác thực:** JWT và bcrypt.
+- **Tài liệu API:** Swagger tại từng service.
+- **Công cụ chạy demo:** Node.js 24 LTS, npm và PowerShell trên Windows.
+
+`shared/database` cung cấp pool kết nối và truy vấn có tham số để các service tái sử dụng phần truy cập SQL.
+
+## 6. Clone và chạy dự án
+
+Chuẩn bị Git, Node.js 24 LTS, SQL Server, SSMS và ODBC Driver 17 phù hợp kiến trúc Node.js. Người clone cần tự tạo `.env` và database trên máy của mình.
+
+### Bước 1: Clone và tạo cấu hình
 
 ```powershell
+git clone https://github.com/tuwns05/Demo_Nest_JS_SOA.git
+cd Demo_Nest_JS_SOA
+
 Copy-Item .env.example .env
 foreach ($name in @('gateway','svc-auth','svc-sinhvien','svc-detai','svc-dangky')) {
   Copy-Item "$name/.env.example" "$name/.env"
 }
-# Sửa .env: DB_HOST, DB_NAME, JWT_SECRET ngẫu nhiên tối thiểu 32 ký tự.
-./scripts/install-all.ps1
-# Tạo 4 database và bảng bằng các file db/separate/01-auth.sql đến 04-dangky.sql.
-# Chuẩn bị tài khoản quản trị trong SOA_AUTH.dbo.User; Password phải là bcrypt hash.
-./scripts/start-all.ps1
+```
+
+Điền thông tin SQL Server trong `.env` gốc: `DB_HOST`, cổng hoặc instance, phương thức xác thực và `DB_ODBC_DRIVER`. Có thể đặt `DB_NAME=SOA_AUTH` ở file gốc; các service đã có `DB_NAME` riêng trong file mẫu. Giữ `DB_CONNECTION_STRING` trống khi dùng cấu hình theo từng database.
+
+Tạo secret rồi sao chép kết quả vào `JWT_SECRET` trong `.env` gốc:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+### Bước 2: Tạo database và tài khoản demo
+
+Trong SSMS, kết nối cùng SQL Server đã cấu hình và chạy toàn bộ từng file `db/separate/01-auth.sql` đến `04-dangky.sql`. Các script tạo bốn database và bảng tương ứng.
+
+Sau đó **chọn database `SOA_AUTH`** và chạy `db/seed.sql` để tạo tài khoản mẫu:
+
+```text
+Tên đăng nhập: demo
+Mật khẩu:      Demo@123456
+```
+
+### Bước 3: Chạy backend
+
+Từ thư mục gốc, chạy trong PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-all.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-all.ps1
+```
+
+Chờ các service khởi động rồi kiểm tra:
+
+```powershell
 Invoke-RestMethod http://localhost:3000/health
 ```
 
-Nếu Windows chặn chạy script, dùng `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-all.ps1` và tương tự với `scripts/start-all.ps1`. Đây là tùy chọn cho tiến trình hiện tại, không đổi chính sách hệ thống. Kết quả kiểm tra và lệnh chạy lại nằm ở [báo cáo nghiệm thu](docs/BAO-CAO-NGHIEM-THU.md).
+Script khởi động chạy các tiến trình trong cửa sổ ẩn. Để xem log trực tiếp, thay cho script khởi động, mở terminal riêng trong mỗi thư mục backend và chạy `npm.cmd run start:dev`.
 
-Chạy riêng: vào thư mục service rồi chạy `npm.cmd run start:dev` để xem log trực tiếp. Script khởi động chạy tiến trình nền. Không commit `.env`. Thử đăng nhập và API bằng [docs/api-test.http](docs/api-test.http). Chỉ POST /auth/login và GET /health công khai tại gateway. Swagger trực tiếp tại /api trên cổng 3001–3004.
+### Bước 4: Chạy frontend
 
-## Frontend Angular
+Mở terminal mới tại thư mục gốc:
 
-Frontend Angular nằm trong [FE_Demo_SOA_AG](FE_Demo_SOA_AG/README.md). Sau khi backend chạy, mở terminal trong thư mục đó, chạy `npm.cmd install` và `npm.cmd start`, rồi vào http://localhost:4200. Frontend có đăng nhập và CRUD sinh viên, đề tài, đăng ký; mỗi service có component và Angular service riêng. Form đăng ký chọn sinh viên/đề tài từ API. Proxy phát triển chuyển `/api/*` đến gateway cổng 3000.
-
-## Lỗi thường gặp
-
-| Hiện tượng | Cách kiểm tra |
-| --- | --- |
-| Không kết nối DB | DB_HOST, DB_NAME, cổng/instance, TCP/IP, firewall và quyền đăng nhập |
-| Thiếu ODBC Driver 17 | Cài driver, đặt DB_ODBC_DRIVER đúng tên đã cài |
-| EADDRINUSE | Kiểm tra Get-NetTCPConnection, đổi PORT và URL liên quan |
-| 401 | Gửi Bearer token hợp lệ, kiểm tra hạn dùng |
-| JWT_SECRET không khớp | Gateway và các service phải đọc cùng secret, khởi động lại sau khi đổi |
-| Đăng nhập 401 sau khi tách DB | Kiểm tra tài khoản nằm trong SOA_AUTH.dbo.User; dữ liệu SOA_DATN không tự chuyển sang |
-| Health 503 | Kiểm tra tiến trình và DB của service bị đánh dấu down |
-
-## Cây thư mục
-
-```text
-gateway/          Xác thực, chuyển tiếp HTTP và health tổng hợp
-svc-auth/         Đăng nhập và phát JWT
-svc-sinhvien/     CRUD sinh viên và health
-svc-detai/        CRUD đề tài và health
-svc-dangky/       CRUD đăng ký, health và client HTTP
-shared/database/  Package pool SQL và truy vấn tham số
-db/               Schema User và seed minh họa
-docs/             Kiến trúc, học code và API
-scripts/          Cài đặt, khởi động PowerShell
-.env.example      Biến chung, không chứa secret thật
+```powershell
+cd FE_Demo_SOA_AG
+npm.cmd ci
+npm.cmd start
 ```
 
-Đọc [kiến trúc](docs/KIEN-TRUC.md), [lộ trình học](docs/HUONG-DAN-HOC.md), [API](docs/API.md), [hỏi đáp](docs/HOI-DAP-BAO-VE.md) và [chuẩn bị DB](db/README.md). Chưa có phân quyền vai trò, giao dịch phân tán, retry hay triển khai production.
+Truy cập **http://localhost:4200** và đăng nhập bằng tài khoản mẫu. Proxy phát triển chuyển `/api/*` đến gateway cổng 3000.
+
+Hướng dẫn cấu hình chi tiết, cách dừng tiến trình và xử lý lỗi nằm tại [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md). Không commit `.env` chứa mật khẩu hoặc JWT secret thật.
+
+## 7. Kịch bản trình diễn
+
+1. Khởi động các dịch vụ, gọi `/health` để kiểm tra trạng thái.
+2. Đăng nhập và nhận JWT.
+3. Thêm sinh viên và đề tài, thử xem và sửa dữ liệu ở từng màn hình.
+4. Tạo đăng ký bằng sinh viên và đề tài vừa thêm; trình bày luồng gọi HTTP giữa các dịch vụ ở mục 4.
+5. Sửa, xem và xóa đăng ký; xóa đăng ký trước khi xóa sinh viên hoặc đề tài liên quan.
+6. Dừng riêng một service, gọi lại `/health` để quan sát trạng thái lỗi và thử API của service khác vẫn đang chạy.
+
+Swagger trực tiếp: `http://localhost:3001/api` đến `http://localhost:3004/api`.
+
+## 8. Cấu trúc thư mục
+
+```text
+FE_Demo_SOA_AG/   Giao diện Angular
+gateway/          Cổng vào HTTP, xác thực và health tổng hợp
+svc-auth/         Đăng nhập và phát JWT
+svc-sinhvien/     CRUD sinh viên
+svc-detai/        CRUD đề tài
+svc-dangky/       CRUD đăng ký và client gọi dịch vụ khác
+shared/database/  Thư viện kết nối và truy vấn SQL dùng chung
+db/separate/      Script tạo database/bảng riêng từng service
+db/seed.sql       Tài khoản demo
+docs/             Tài liệu triển khai, API và bài học
+scripts/          Script cài đặt và khởi động backend
+.env.example      Mẫu cấu hình dùng chung
+```
+
+## 9. Giới hạn hiện tại
+
+Demo thể hiện các đặc trưng SOA trong phạm vi bài thực hành. Các service chạy riêng nhưng vẫn dùng chung SQL Server instance, JWT secret và thư viện database. Chưa có phân quyền theo vai trò, giao dịch phân tán, retry hoặc cấu hình triển khai production.
+
+Giữa các database không có khóa ngoại. Luồng tạo/sửa đăng ký đã kiểm tra tham chiếu qua API, nhưng chưa bảo đảm toàn vẹn khi có thao tác đồng thời hoặc khi xóa sinh viên/đề tài đang được đăng ký. Chưa có phân trang và chặn đăng ký trùng. Khi chạy demo, xóa đăng ký liên quan trước khi xóa sinh viên/đề tài.
+
+Tài liệu bổ sung: [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md), [API](docs/API.md), [Database riêng từng service](db/separate/README.md), [Frontend](FE_Demo_SOA_AG/README.md).

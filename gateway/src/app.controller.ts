@@ -11,7 +11,7 @@ export class AppController {
     private readonly appService: AppService,
     private readonly http: HttpService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   @Get('health')
   async getHealth(@Res() response: Response) {

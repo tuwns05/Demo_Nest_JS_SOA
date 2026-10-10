@@ -1,206 +1,66 @@
-# Demo SOA — Quản lý đồ án tốt nghiệp
+# Hệ thống quản lý đồ án tốt nghiệp theo SOA
 
-Dự án demo xây dựng các dịch vụ web bằng **NestJS** cho bài toán khoa quản lý đồ án tốt nghiệp của sinh viên theo **kiến trúc hướng dịch vụ (SOA)**. Các dịch vụ có trách nhiệm riêng, chạy trong các tiến trình độc lập và phối hợp qua **HTTP/REST**, trao đổi dữ liệu JSON.
+Dự án mô phỏng hệ thống giúp khoa quản lý sinh viên, đề tài và việc đăng ký đồ án tốt nghiệp. Hệ thống được xây dựng bằng NestJS theo **kiến trúc hướng dịch vụ (Service-Oriented Architecture — SOA)**, với giao diện Angular và cơ sở dữ liệu SQL Server.
 
-Ba nghiệp vụ chính sử dụng các bảng **SINHVIEN**, **DETAI** và **DANGKY** trong SQL Server. Giao diện Angular hỗ trợ thao tác CRUD; dịch vụ xác thực và gateway hỗ trợ đăng nhập, bảo vệ API và truy cập hệ thống.
+Mục tiêu của demo là thể hiện cách chia bài toán thành các dịch vụ có trách nhiệm riêng, giao tiếp qua HTTP/REST và phối hợp để thực hiện nghiệp vụ. Hệ thống cung cấp các chức năng CRUD cơ bản trên ba nhóm dữ liệu: **SINHVIEN, DETAI và DANGKY**.
 
-## 1. Yêu cầu và phạm vi demo
+## Tổ chức hệ thống theo SOA
 
-| Yêu cầu bài thực hành | Cách thể hiện trong dự án |
+Trong hệ thống này, mỗi dịch vụ phụ trách một phần nghiệp vụ và cung cấp API để các thành phần khác sử dụng. Các dịch vụ chạy trong tiến trình riêng, có cấu hình và cổng HTTP riêng, nên có thể được khởi động hoặc dừng độc lập.
+
+| Thành phần | Vai trò |
 | --- | --- |
-| Dùng framework đã nghiên cứu để cài đặt dịch vụ web | NestJS xây dựng controller, xử lý nghiệp vụ và kết nối SQL Server |
-| Dịch vụ độc lập | Mỗi service có `package.json`, điểm khởi động, cấu hình và cổng HTTP riêng; có thể chạy riêng từng tiến trình |
-| Phối hợp và trao đổi dữ liệu qua HTTP/REST | Gateway chuyển tiếp yêu cầu; dịch vụ đăng ký gọi API sinh viên và đề tài khi tạo/sửa đăng ký |
-| Giao tiếp qua giao thức chuẩn | HTTP, các phương thức GET/POST/PATCH/DELETE và dữ liệu JSON; có Swagger tại từng service |
-| Có thể tái sử dụng | API nghiệp vụ phục vụ Angular, công cụ thử API hoặc ứng dụng khác; dịch vụ đăng ký tái sử dụng API tra cứu sinh viên và đề tài |
-| CRUD cơ bản của bài toán | Thêm, xem danh sách/chi tiết, sửa và xóa sinh viên, đề tài, đăng ký |
+| `svc-sinhvien` | Quản lý thông tin sinh viên và cung cấp API tra cứu sinh viên |
+| `svc-detai` | Quản lý đề tài và cung cấp API tra cứu đề tài |
+| `svc-dangky` | Quản lý đăng ký đồ án, phối hợp với dịch vụ sinh viên và đề tài |
+| `svc-auth` | Xác thực tài khoản và cấp JWT để truy cập API |
+| `gateway` | Tiếp nhận yêu cầu, kiểm tra xác thực và chuyển tiếp đến dịch vụ phù hợp |
+| `FE_Demo_SOA_AG` | Giao diện đăng nhập và thao tác với các chức năng quản lý |
 
-Ba dịch vụ sinh viên, đề tài và đăng ký là trọng tâm nghiệp vụ SOA. Đăng nhập JWT, health check và giao diện Angular là các phần hỗ trợ trình diễn.
+Ba dịch vụ sinh viên, đề tài và đăng ký là phần nghiệp vụ chính. Gateway và dịch vụ xác thực hỗ trợ truy cập hệ thống.
 
-## 2. Kiến trúc hệ thống
+## Những đặc trưng SOA được thể hiện
 
-```mermaid
-flowchart LR
-  UI[Frontend Angular :4200] -->|HTTP/REST JSON| G[Gateway :3000]
-  G --> A[Xác thực :3004]
-  G --> S[Sinh viên :3001]
-  G --> D[Đề tài :3002]
-  G --> K[Đăng ký :3003]
-  K -->|Tra cứu qua HTTP/REST| S
-  K -->|Tra cứu qua HTTP/REST| D
-  A --> DBA[(SOA_AUTH / User)]
-  S --> DBS[(SOA_SINHVIEN / SINHVIEN)]
-  D --> DBD[(SOA_DETAI / DETAI)]
-  K --> DBK[(SOA_DANGKY / DANGKY)]
-```
+**Dịch vụ có trách nhiệm riêng:** chức năng quản lý sinh viên, đề tài và đăng ký được tách thành các dịch vụ riêng. Mỗi dịch vụ xử lý nghiệp vụ và truy cập database thuộc phạm vi của mình.
 
-| Thành phần | Cổng | Trách nhiệm | Database |
-| --- | --- | --- | --- |
-| `gateway` | 3000 | Xác thực yêu cầu, định tuyến và tổng hợp health | Không có |
-| `svc-auth` | 3004 | Kiểm tra tài khoản, mật khẩu bcrypt và phát JWT | `SOA_AUTH` |
-| `svc-sinhvien` | 3001 | CRUD sinh viên | `SOA_SINHVIEN` |
-| `svc-detai` | 3002 | CRUD đề tài | `SOA_DETAI` |
-| `svc-dangky` | 3003 | CRUD đăng ký, kiểm tra sinh viên/đề tài qua API | `SOA_DANGKY` |
-| `FE_Demo_SOA_AG` | 4200 | Giao diện đăng nhập và quản lý ba nghiệp vụ | Không có |
+**Giao tiếp qua giao thức chuẩn:** các dịch vụ cung cấp API HTTP/REST và trao đổi dữ liệu JSON. Các thao tác sử dụng GET để đọc, POST để tạo, PATCH để cập nhật và DELETE để xóa.
 
-Mỗi dịch vụ nghiệp vụ truy vấn database của mình. Dịch vụ đăng ký tra cứu sinh viên và đề tài qua API thay vì truy vấn trực tiếp database của hai dịch vụ đó.
+**Phối hợp giữa các dịch vụ:** dịch vụ đăng ký gọi API sinh viên và đề tài để kiểm tra dữ liệu trước khi tạo hoặc cập nhật đăng ký. Việc tra cứu thực hiện qua HTTP thay vì đọc trực tiếp database của dịch vụ khác.
 
-Các database hiện cùng nằm trên một SQL Server instance. Cấu hình máy chủ và JWT dùng chung từ `.env` gốc; từng service đặt `DB_NAME` trong `.env` riêng. Quyền SQL chưa được giới hạn bằng tài khoản riêng cho mỗi service.
+**Khả năng tái sử dụng:** API sinh viên và đề tài được sử dụng bởi cả giao diện quản lý và dịch vụ đăng ký. Những ứng dụng khác cũng có thể sử dụng các API này khi tuân thủ hợp đồng và yêu cầu xác thực.
 
-## 3. Chức năng và API chính
+## Chức năng chính
 
-| Nghiệp vụ | Chức năng | Đường dẫn qua gateway |
-| --- | --- | --- |
-| Xác thực | Đăng nhập, nhận JWT | `POST /auth/login` |
-| Sinh viên | Thêm, xem danh sách/chi tiết, sửa, xóa | `/sinhvien`, `/sinhvien/:maSV` |
-| Đề tài | Thêm, xem danh sách/chi tiết, sửa, xóa | `/detai`, `/detai/:maDT` |
-| Đăng ký | Thêm, xem danh sách/chi tiết, sửa, xóa | `/dangky`, `/dangky/:maDK` |
-| Health | Kiểm tra trạng thái các dịch vụ | `GET /health` |
+- **Quản lý sinh viên:** thêm, xem danh sách và chi tiết, cập nhật, xóa sinh viên.
+- **Quản lý đề tài:** thêm, xem danh sách và chi tiết, cập nhật, xóa đề tài.
+- **Quản lý đăng ký:** đăng ký đề tài cho sinh viên, xem, cập nhật và xóa đăng ký.
+- **Đăng nhập:** xác thực tài khoản và cấp JWT để sử dụng các API được bảo vệ.
+- **Kiểm tra trạng thái:** theo dõi tình trạng hoạt động của các dịch vụ qua health check.
 
-Quy ước CRUD: `POST` tạo mới, `GET` đọc dữ liệu, `PATCH` cập nhật, `DELETE` xóa. Các API CRUD yêu cầu `Authorization: Bearer <token>`, bao gồm khi gọi trực tiếp service.
+## Ví dụ phối hợp dịch vụ
 
-Frontend có màn hình riêng cho từng nghiệp vụ. Form đăng ký lấy danh sách sinh viên và đề tài từ API để người dùng chọn.
+Khi người dùng đăng ký đề tài cho một sinh viên:
 
-Xem trường dữ liệu và hợp đồng tại [tài liệu API](docs/API.md); thử yêu cầu bằng [api-test.http](docs/api-test.http).
+1. Giao diện gửi yêu cầu đến gateway.
+2. Gateway kiểm tra JWT và chuyển yêu cầu đến dịch vụ đăng ký.
+3. Dịch vụ đăng ký gọi API sinh viên để kiểm tra mã sinh viên.
+4. Dịch vụ đăng ký gọi API đề tài để kiểm tra mã đề tài.
+5. Khi các kiểm tra thành công, dịch vụ đăng ký lưu dữ liệu vào database của mình và trả kết quả.
 
-## 4. Luồng phối hợp minh họa SOA
+Luồng này minh họa việc kết hợp các dịch vụ để hoàn thành một nghiệp vụ chung. Dịch vụ sinh viên và đề tài tiếp tục cung cấp chức năng quản lý riêng, đồng thời phục vụ nhu cầu tra cứu của dịch vụ đăng ký.
 
-Khi tạo đăng ký đề tài, dịch vụ đăng ký gọi hai dịch vụ khác để kiểm tra mã sinh viên và mã đề tài trước khi lưu:
+## Dữ liệu và công nghệ
 
-```mermaid
-sequenceDiagram
-  participant UI as Frontend
-  participant G as Gateway
-  participant K as Dịch vụ đăng ký
-  participant S as Dịch vụ sinh viên
-  participant D as Dịch vụ đề tài
-  participant DB as SOA_DANGKY
-  UI->>G: POST /dangky + Bearer JWT
-  G->>G: Xác minh JWT
-  G->>K: Chuyển tiếp yêu cầu và token
-  K->>S: GET /sinhvien/:maSV + token
-  S-->>K: Thông tin sinh viên
-  K->>D: GET /detai/:maDT + token
-  D-->>K: Thông tin đề tài
-  K->>DB: INSERT DANGKY
-  DB-->>K: Bản ghi vừa tạo
-  K-->>G: Kết quả tạo đăng ký
-  G-->>UI: HTTP 201 + JSON
-```
+Hệ thống sử dụng **NestJS** cho backend, **Angular** cho frontend và **SQL Server** để lưu dữ liệu. Các dịch vụ giao tiếp qua HTTP/REST; JWT được dùng để xác thực yêu cầu.
 
-Luồng này đã có trong [dịch vụ đăng ký](svc-dangky/src/app.service.ts) và [các client HTTP](svc-dangky/src/clients). Khi kiểm tra tham chiếu thất bại, thao tác không tiếp tục ghi đăng ký. Luồng cập nhật cũng kiểm tra sinh viên và đề tài qua API.
+Ba bảng nghiệp vụ được tổ chức trong các database `SOA_SINHVIEN`, `SOA_DETAI` và `SOA_DANGKY`. Tài khoản đăng nhập nằm trong `SOA_AUTH`. Các database hiện dùng chung một SQL Server instance.
 
-API sinh viên và đề tài phục vụ đồng thời giao diện quản lý và dịch vụ đăng ký, thể hiện khả năng tái sử dụng dịch vụ qua hợp đồng HTTP.
+Đây là bản demo phục vụ bài thực hành. Các dịch vụ đã được tách tiến trình và API, nhưng vẫn dùng chung hạ tầng SQL Server và một số cấu hình. Kiểm tra tham chiếu khi tạo/sửa đăng ký đã có; việc bảo đảm toàn vẹn dữ liệu khi xóa hoặc thao tác đồng thời chưa hoàn thiện.
 
-## 5. Công nghệ sử dụng
+## Chạy và tìm hiểu dự án
 
-- **Backend:** NestJS 12, TypeScript ESM, HTTP/REST và Axios.
-- **Frontend:** Angular 22, Angular service và proxy phát triển đến gateway.
-- **Database:** SQL Server, `mssql`/`msnodesqlv8`, Microsoft ODBC Driver 17.
-- **Xác thực:** JWT và bcrypt.
-- **Tài liệu API:** Swagger tại từng service.
-- **Công cụ chạy demo:** Node.js 24 LTS, npm và PowerShell trên Windows.
+Xem [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md) để clone mã nguồn, cấu hình môi trường, tạo database và chạy backend/frontend trên máy mới.
 
-`shared/database` cung cấp pool kết nối và truy vấn có tham số để các service tái sử dụng phần truy cập SQL.
+Sau khi khởi động, giao diện nằm tại `http://localhost:4200` và gateway tại `http://localhost:3000`.
 
-## 6. Clone và chạy dự án
-
-Chuẩn bị Git, Node.js 24 LTS, SQL Server, SSMS và ODBC Driver 17 phù hợp kiến trúc Node.js. Người clone cần tự tạo `.env` và database trên máy của mình.
-
-### Bước 1: Clone và tạo cấu hình
-
-```powershell
-git clone https://github.com/tuwns05/Demo_Nest_JS_SOA.git
-cd Demo_Nest_JS_SOA
-
-Copy-Item .env.example .env
-foreach ($name in @('gateway','svc-auth','svc-sinhvien','svc-detai','svc-dangky')) {
-  Copy-Item "$name/.env.example" "$name/.env"
-}
-```
-
-Điền thông tin SQL Server trong `.env` gốc: `DB_HOST`, cổng hoặc instance, phương thức xác thực và `DB_ODBC_DRIVER`. Có thể đặt `DB_NAME=SOA_AUTH` ở file gốc; các service đã có `DB_NAME` riêng trong file mẫu. Giữ `DB_CONNECTION_STRING` trống khi dùng cấu hình theo từng database.
-
-Tạo secret rồi sao chép kết quả vào `JWT_SECRET` trong `.env` gốc:
-
-```powershell
-node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-```
-
-### Bước 2: Tạo database và tài khoản demo
-
-Trong SSMS, kết nối cùng SQL Server đã cấu hình và chạy toàn bộ từng file `db/separate/01-auth.sql` đến `04-dangky.sql`. Các script tạo bốn database và bảng tương ứng.
-
-Sau đó **chọn database `SOA_AUTH`** và chạy `db/seed.sql` để tạo tài khoản mẫu:
-
-```text
-Tên đăng nhập: demo
-Mật khẩu:      Demo@123456
-```
-
-### Bước 3: Chạy backend
-
-Từ thư mục gốc, chạy trong PowerShell:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-all.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-all.ps1
-```
-
-Chờ các service khởi động rồi kiểm tra:
-
-```powershell
-Invoke-RestMethod http://localhost:3000/health
-```
-
-Script khởi động chạy các tiến trình trong cửa sổ ẩn. Để xem log trực tiếp, thay cho script khởi động, mở terminal riêng trong mỗi thư mục backend và chạy `npm.cmd run start:dev`.
-
-### Bước 4: Chạy frontend
-
-Mở terminal mới tại thư mục gốc:
-
-```powershell
-cd FE_Demo_SOA_AG
-npm.cmd ci
-npm.cmd start
-```
-
-Truy cập **http://localhost:4200** và đăng nhập bằng tài khoản mẫu. Proxy phát triển chuyển `/api/*` đến gateway cổng 3000.
-
-Hướng dẫn cấu hình chi tiết, cách dừng tiến trình và xử lý lỗi nằm tại [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md). Không commit `.env` chứa mật khẩu hoặc JWT secret thật.
-
-## 7. Kịch bản trình diễn
-
-1. Khởi động các dịch vụ, gọi `/health` để kiểm tra trạng thái.
-2. Đăng nhập và nhận JWT.
-3. Thêm sinh viên và đề tài, thử xem và sửa dữ liệu ở từng màn hình.
-4. Tạo đăng ký bằng sinh viên và đề tài vừa thêm; trình bày luồng gọi HTTP giữa các dịch vụ ở mục 4.
-5. Sửa, xem và xóa đăng ký; xóa đăng ký trước khi xóa sinh viên hoặc đề tài liên quan.
-6. Dừng riêng một service, gọi lại `/health` để quan sát trạng thái lỗi và thử API của service khác vẫn đang chạy.
-
-Swagger trực tiếp: `http://localhost:3001/api` đến `http://localhost:3004/api`.
-
-## 8. Cấu trúc thư mục
-
-```text
-FE_Demo_SOA_AG/   Giao diện Angular
-gateway/          Cổng vào HTTP, xác thực và health tổng hợp
-svc-auth/         Đăng nhập và phát JWT
-svc-sinhvien/     CRUD sinh viên
-svc-detai/        CRUD đề tài
-svc-dangky/       CRUD đăng ký và client gọi dịch vụ khác
-shared/database/  Thư viện kết nối và truy vấn SQL dùng chung
-db/separate/      Script tạo database/bảng riêng từng service
-db/seed.sql       Tài khoản demo
-docs/             Tài liệu triển khai, API và bài học
-scripts/          Script cài đặt và khởi động backend
-.env.example      Mẫu cấu hình dùng chung
-```
-
-## 9. Giới hạn hiện tại
-
-Demo thể hiện các đặc trưng SOA trong phạm vi bài thực hành. Các service chạy riêng nhưng vẫn dùng chung SQL Server instance, JWT secret và thư viện database. Chưa có phân quyền theo vai trò, giao dịch phân tán, retry hoặc cấu hình triển khai production.
-
-Giữa các database không có khóa ngoại. Luồng tạo/sửa đăng ký đã kiểm tra tham chiếu qua API, nhưng chưa bảo đảm toàn vẹn khi có thao tác đồng thời hoặc khi xóa sinh viên/đề tài đang được đăng ký. Chưa có phân trang và chặn đăng ký trùng. Khi chạy demo, xóa đăng ký liên quan trước khi xóa sinh viên/đề tài.
-
-Tài liệu bổ sung: [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md), [API](docs/API.md), [Database riêng từng service](db/separate/README.md), [Frontend](FE_Demo_SOA_AG/README.md).
+Thông tin chi tiết về endpoint và dữ liệu nằm trong [Tài liệu API](docs/API.md). Có thể thử các yêu cầu bằng [api-test.http](docs/api-test.http).

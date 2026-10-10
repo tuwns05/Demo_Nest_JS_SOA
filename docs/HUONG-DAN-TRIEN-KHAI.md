@@ -33,8 +33,6 @@ git clone https://github.com/tuwns05/Demo_Nest_JS_SOA.git
 cd Demo_Nest_JS_SOA
 ```
 
-Nếu repository riêng tư, chủ repository cần cấp quyền truy cập cho tài khoản GitHub của người clone.
-
 Các lệnh bên dưới chạy từ thư mục gốc `Demo_Nest_JS_SOA`, trừ khi có hướng dẫn chuyển thư mục.
 
 ## 3. Tạo và cấu hình môi trường

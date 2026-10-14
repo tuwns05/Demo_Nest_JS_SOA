@@ -20,8 +20,14 @@ import { ServiceHealth } from '../core/api';
         } @else {
           <span class="status-pill pending">Chưa có kết quả</span>
         }
-        <button class="button subtle" [disabled]="loading()" (click)="refresh.emit()">
-          ↻ Kiểm tra lại
+        <button
+          class="icon-button refresh-button"
+          [attr.aria-label]="loading() ? 'Đang kiểm tra kết nối' : 'Kiểm tra lại kết nối'"
+          [attr.title]="loading() ? 'Đang kiểm tra kết nối' : 'Kiểm tra lại kết nối'"
+          [disabled]="loading()"
+          (click)="refresh.emit()"
+        >
+          <span aria-hidden="true">↻</span>
         </button>
       </div>
       @if (error()) {

@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SessionService } from '../../core/session.service';
 import { GatewayService } from './gateway.service';
 
 @Component({
@@ -12,24 +11,17 @@ import { GatewayService } from './gateway.service';
       <div>
         <span class="eyebrow">KHÔNG GIAN QUẢN LÝ</span>
         <h1>Tổng quan</h1>
-        <p class="muted">Chào {{ session.username() }}, mọi kết nối bắt đầu từ đây.</p>
+        <p class="muted">Theo dõi nhanh các dịch vụ và dữ liệu quản lý đồ án.</p>
       </div>
-      <button class="button subtle" (click)="store.check()" [disabled]="store.loading()">
-        ↻ {{ store.loading() ? 'Đang kiểm tra…' : 'Làm mới trạng thái' }}
+      <button
+        class="icon-button refresh-button"
+        [attr.aria-label]="store.loading() ? 'Đang kiểm tra trạng thái' : 'Làm mới trạng thái'"
+        [attr.title]="store.loading() ? 'Đang kiểm tra trạng thái' : 'Làm mới trạng thái'"
+        (click)="store.check()"
+        [disabled]="store.loading()"
+      >
+        <span aria-hidden="true">↻</span>
       </button>
-    </section>
-    <section class="welcome-banner">
-      <div>
-        <span class="eyebrow">QUẢN LÝ ĐỒ ÁN TỐT NGHIỆP</span>
-        <h2>Tập trung vào những<br />điều quan trọng.</h2>
-        <p>Quản lý hồ sơ sinh viên và theo dõi kết nối các dịch vụ trong cùng một không gian.</p>
-        <a class="button light" routerLink="/sinh-vien">Mở danh sách sinh viên ↗</a>
-      </div>
-      <div class="banner-art" aria-hidden="true">
-        <span class="art-square square-one"></span><span class="art-square square-two"></span
-        ><span class="art-circle"></span
-        ><span class="art-label">SOA<br /><small>CAMPUS</small></span>
-      </div>
     </section>
     <div class="section-heading">
       <div>
@@ -82,7 +74,6 @@ import { GatewayService } from './gateway.service';
 })
 export class GatewayComponent implements OnInit {
   readonly store = inject(GatewayService);
-  readonly session = inject(SessionService);
   readonly upCount = computed(
     () =>
       Object.values(this.store.health()?.services ?? {}).filter((value) => value === 'up').length,

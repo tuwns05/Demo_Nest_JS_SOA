@@ -27,8 +27,14 @@
 <section class="panel">
   <div class="table-toolbar">
     <span class="muted">{{ store.items().length }} đăng ký</span>
-    <button class="button subtle" (click)="reload()" [disabled]="loading() || busy()">
-      ↻ Làm mới
+    <button
+      class="icon-button refresh-button"
+      aria-label="Làm mới danh sách đăng ký"
+      title="Làm mới danh sách đăng ký"
+      (click)="reload()"
+      [disabled]="loading() || busy()"
+    >
+      <span aria-hidden="true">↻</span>
     </button>
   </div>
   <div class="table-scroll" [attr.aria-busy]="loading()">

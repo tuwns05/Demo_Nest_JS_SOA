@@ -48,29 +48,6 @@
           </a>
         }
       </nav>
-      <div class="sidebar-note">
-        <span class="note-icon" aria-hidden="true">✧</span><strong>Một nơi, mọi kết nối.</strong>
-        <p>Đồng hành cùng hành trình đồ án tốt nghiệp.</p>
-      </div>
-      <div class="sidebar-account">
-        <a routerLink="/tai-khoan" routerLinkActive="active"
-          ><span class="avatar">{{ auth.session.username().slice(0, 2).toUpperCase() }}</span
-          ><span class="account-name"
-            >{{ auth.session.username() }}<small>Tài khoản đang đăng nhập</small></span
-          ></a
-        ><button
-          class="icon-button"
-          aria-label="Đăng xuất"
-          title="Đăng xuất"
-          (click)="auth.logout()"
-        >
-          <svg class="logout-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <path d="m16 17 5-5-5-5" />
-            <path d="M21 12H9" />
-          </svg>
-        </button>
-      </div>
     </aside>
   } @else {
     <header class="guest-header">
@@ -83,19 +60,27 @@
   <div class="workspace">
     @if (auth.session.authenticated() && !isLogin()) {
       <header class="topbar">
-        <span
-          >Không gian học thuật <span class="topbar-divider">/</span>
-          <strong>Quản lý đồ án</strong></span
-        ><a routerLink="/tai-khoan"
-          ><span class="status-dot"></span> {{ auth.session.username() }}</a
-        >
+        <div class="topbar-actions">
+          <a routerLink="/tai-khoan"
+            ><span class="status-dot"></span> {{ auth.session.username() }}</a
+          >
+          <button
+            class="icon-button"
+            aria-label="Đăng xuất"
+            title="Đăng xuất"
+            (click)="auth.logout()"
+          >
+            <svg class="logout-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+          </button>
+        </div>
       </header>
     }
     <main id="main-content" [class.page-content]="auth.session.authenticated() && !isLogin()">
       <router-outlet />
     </main>
-    <footer class="app-footer">
-      <span>SOA Campus</span><span>Hệ thống quản lý đồ án tốt nghiệp</span>
-    </footer>
   </div>
 </div>

@@ -9,10 +9,43 @@
       <span class="nav-caption">KHÔNG GIAN LÀM VIỆC</span>
       <nav aria-label="Điều hướng chính">
         @for (item of navigation; track item.path) {
-          <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page"
-            ><span class="nav-icon" aria-hidden="true">{{ item.icon }}</span
-            >{{ item.label }}<span class="nav-arrow" aria-hidden="true">›</span></a
-          >
+          <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+            @switch (item.path) {
+              @case ('/tong-quan') {
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              }
+              @case ('/sinh-vien') {
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              }
+              @case ('/de-tai') {
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                </svg>
+              }
+              @case ('/dang-ky') {
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                  <path d="m9 14 2 2 4-4" />
+                </svg>
+              }
+              @default {
+                <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              }
+            }
+            {{ item.label }}
+          </a>
         }
       </nav>
       <div class="sidebar-note">
@@ -31,7 +64,11 @@
           title="Đăng xuất"
           (click)="auth.logout()"
         >
-          ⇥
+          <svg class="logout-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <path d="m16 17 5-5-5-5" />
+            <path d="M21 12H9" />
+          </svg>
         </button>
       </div>
     </aside>
@@ -58,7 +95,7 @@
       <router-outlet />
     </main>
     <footer class="app-footer">
-      <span>SOA Campus</span><span>Đơn giản hơn. Kết nối tốt hơn.</span>
+      <span>SOA Campus</span><span>Hệ thống quản lý đồ án tốt nghiệp</span>
     </footer>
   </div>
 </div>

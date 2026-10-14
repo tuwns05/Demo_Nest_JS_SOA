@@ -6,7 +6,7 @@
         ><span class="brand-mark" aria-hidden="true">S</span
         ><span>SOA <strong>Campus</strong><small>QUẢN LÝ ĐỒ ÁN</small></span></a
       >
-      <span class="nav-caption">KHÔNG GIAN LÀM VIỆC</span>
+      <span class="nav-caption">MENU</span>
       <nav aria-label="Điều hướng chính">
         @for (item of navigation; track item.path) {
           <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
@@ -48,15 +48,11 @@
           </a>
         }
       </nav>
-      <div class="sidebar-note">
-        <span class="note-icon" aria-hidden="true">✧</span><strong>Một nơi, mọi kết nối.</strong>
-        <p>Đồng hành cùng hành trình đồ án tốt nghiệp.</p>
-      </div>
       <div class="sidebar-account">
         <a routerLink="/tai-khoan" routerLinkActive="active"
           ><span class="avatar">{{ auth.session.username().slice(0, 2).toUpperCase() }}</span
           ><span class="account-name"
-            >{{ auth.session.username() }}<small>Tài khoản đang đăng nhập</small></span
+            >{{ auth.session.username() }}<small>Đang đăng nhập</small></span
           ></a
         ><button
           class="icon-button"
@@ -77,15 +73,13 @@
       <a class="brand" routerLink="/tong-quan"
         ><span class="brand-mark" aria-hidden="true">S</span
         ><span>SOA <strong>Campus</strong></span></a
-      ><span>Hệ thống quản lý đồ án tốt nghiệp</span>
+      ><span>Quản lý đồ án tốt nghiệp</span>
     </header>
   }
   <div class="workspace">
     @if (auth.session.authenticated() && !isLogin()) {
       <header class="topbar">
-        <span
-          >Không gian học thuật <span class="topbar-divider">/</span>
-          <strong>Quản lý đồ án</strong></span
+        <strong>Hệ thống quản lý đồ án</strong
         ><a routerLink="/tai-khoan"
           ><span class="status-dot"></span> {{ auth.session.username() }}</a
         >
@@ -95,7 +89,7 @@
       <router-outlet />
     </main>
     <footer class="app-footer">
-      <span>SOA Campus</span><span>Hệ thống quản lý đồ án tốt nghiệp</span>
+      <span>SOA Campus</span><span>Quản lý đồ án tốt nghiệp</span>
     </footer>
   </div>
 </div>

@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap&subset=vietnamese');
-
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700&display=swap');
 /* ---------- Form controls ---------- */
 label {
   display: block;
@@ -87,12 +87,12 @@ textarea {
   overflow: hidden;
 }
 .login-story h1 {
-  font-family: 'Playfair Display', Cambria, 'Times New Roman', serif;
-  font-size: clamp(52px, 5.6vw, 80px);
-  font-weight: 400;
-  line-height: 1.12;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 600;
+  line-height: 1.15;
   color: #be123c;
-  letter-spacing: -1.5px;
+  letter-spacing: -0.02em;
   margin-top: 22px;
 }
 .login-story > p {

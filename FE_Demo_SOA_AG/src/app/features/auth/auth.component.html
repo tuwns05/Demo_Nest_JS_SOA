@@ -1,8 +1,6 @@
 <div class="login-layout">
   <section class="login-story">
-    <span class="eyebrow">KHÔNG GIAN HỌC THUẬT</span>
-    <h1>Mỗi đề tài,<br />một khởi đầu.</h1>
-    <p>Quản lý sinh viên và theo dõi hành trình đồ án trong một không gian đơn giản, rõ ràng.</p>
+    <h1>HỆ THỐNG<br />QUẢN LÝ ĐỒ ÁN</h1>
     <div class="story-illustration" aria-hidden="true">
       <div class="paper paper-back"></div>
       <div class="paper paper-front">
@@ -14,13 +12,11 @@
       </div>
       <span class="story-orbit orbit-one"></span><span class="story-orbit orbit-two"></span>
     </div>
-    <span class="story-caption">KẾT NỐI DỮ LIỆU · ĐỒNG HÀNH CÙNG SINH VIÊN</span>
   </section>
   <section class="login-form-wrap">
     <div class="login-form">
-      <span class="eyebrow">CHÀO MỪNG TRỞ LẠI</span>
       <h2>Đăng nhập quản trị</h2>
-      <p class="muted">Sử dụng tài khoản quản trị và mật khẩu để vào hệ thống.</p>
+      <p class="muted">Dùng tài khoản quản trị để vào hệ thống.</p>
       @if (expired) {
         <p class="notice" role="status">Phiên đã hết hạn. Vui lòng đăng nhập lại.</p>
       }
@@ -36,7 +32,7 @@
           required
           maxlength="100"
           autocomplete="username"
-          placeholder="Nhập tài khoản quản trị"
+          placeholder="Nhập tài khoản"
         />
         <label for="password">Mật khẩu</label>
         <input
@@ -52,7 +48,7 @@
           {{ busy() ? 'Đang đăng nhập…' : 'Đăng nhập →' }}
         </button>
       </form>
-      <p class="login-note">Liên hệ người quản lý nếu bạn chưa có tài khoản.</p>
+      <p class="login-note">Chưa có tài khoản? Liên hệ quản lý.</p>
     </div>
   </section>
 </div>

@@ -1,5 +1,6 @@
 ﻿import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { apiError } from '../../core/api';
@@ -22,6 +23,14 @@ export class DangKyComponent implements OnInit {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  searchCode = '';
+  readonly searchId = signal<number | null>(null);
+  private readonly searchFound = signal(false);
+  readonly visibleItems = computed(() => {
+    const id = this.searchId();
+    if (id === null) return this.store.items();
+    return this.searchFound() ? this.store.items().filter((item) => Number(item.MaDK) === id) : [];
+  });
   readonly mode = signal<'create' | 'edit' | 'detail' | 'delete' | null>(null);
   readonly current = signal<DangKy | null>(null);
   form = this.emptyForm();
@@ -32,6 +41,9 @@ export class DangKyComponent implements OnInit {
 
   reload() {
     if (this.loading() || this.busy()) return;
+    this.searchCode = '';
+    this.searchId.set(null);
+    this.message.set('');
     this.loading.set(true);
     this.error.set('');
     forkJoin([this.store.list(), this.students.list(), this.topics.list()])
@@ -40,6 +52,35 @@ export class DangKyComponent implements OnInit {
         finalize(() => this.loading.set(false)),
       )
       .subscribe({ error: (error) => this.error.set(apiError(error)) });
+  }
+
+  search() {
+    if (this.loading() || this.busy()) return;
+    const code = this.searchCode.trim();
+    if (!code) {
+      this.reload();
+      return;
+    }
+    const id = Number(code);
+    if (!/^\d+$/.test(code) || !Number.isInteger(id) || id < 1 || id > 2147483647) {
+      this.error.set('Mã đăng ký phải là số nguyên từ 1 đến 2147483647.');
+      return;
+    }
+    this.searchId.set(id);
+    this.searchFound.set(false);
+    this.loading.set(true);
+    this.error.set('');
+    this.message.set('');
+    this.store
+      .findOne(id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: () => this.searchFound.set(true),
+        error: (error) => this.error.set(apiError(error)),
+      });
   }
 
   openCreate() {

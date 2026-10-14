@@ -38,7 +38,9 @@ export class DeTaiService extends HealthStore {
   }
 
   findOne(id: number) {
-    return this.apiHttp.get<DeTai>(API_BASE + '/detai/' + id);
+    return this.apiHttp
+      .get<DeTai>(API_BASE + '/detai/' + id)
+      .pipe(tap((data) => this.upsert(data)));
   }
 
   create(body: DeTaiBody) {

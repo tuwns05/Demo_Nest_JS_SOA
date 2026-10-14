@@ -40,7 +40,9 @@ export class DangKyService extends HealthStore {
   }
 
   findOne(id: number) {
-    return this.apiHttp.get<DangKy>(API_BASE + '/dangky/' + id);
+    return this.apiHttp
+      .get<DangKy>(API_BASE + '/dangky/' + id)
+      .pipe(tap((data) => this.upsert(data)));
   }
 
   create(body: DangKyBody) {

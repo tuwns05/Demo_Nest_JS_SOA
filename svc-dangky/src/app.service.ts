@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ConflictException
 } from '@nestjs/common';
 import { DatabaseService } from '@soa/database';
 import { SinhVienClient } from './clients/sinhvien.client.js';
@@ -14,7 +15,7 @@ export class AppService {
     private readonly databaseService: DatabaseService,
     private readonly sinhVienClient: SinhVienClient,
     private readonly deTaiClient: DeTaiClient,
-  ) {}
+  ) { }
 
   async findAll() {
     const result = await this.databaseService.query(
@@ -42,14 +43,17 @@ export class AppService {
     await this.deTaiClient.findById(maDT, authorization);
   }
 
+  //CREATE
   async create(dto: CreateDangKyDto, authorization: string) {
     await this.checkReferences(dto.maSV, dto.maDT, authorization);
+
+    await this.checkDuplicate(dto.maSV, dto.maDT);
     const result = await this.databaseService.query(
       'INSERT INTO dbo.DANGKY (MaSV, MaDT, NgayDangKy, TrangThai) OUTPUT inserted.MaDK, inserted.MaSV, inserted.MaDT, inserted.NgayDangKy, inserted.TrangThai VALUES (@maSV, @maDT, ' +
-        (dto.ngayDangKy === undefined
-          ? 'CAST(GETDATE() AS date)'
-          : '@ngayDangKy') +
-        ', @trangThai)',
+      (dto.ngayDangKy === undefined
+        ? 'CAST(GETDATE() AS date)'
+        : '@ngayDangKy') +
+      ', @trangThai)',
       {
         maSV: dto.maSV,
         maDT: dto.maDT,
@@ -60,6 +64,20 @@ export class AppService {
     return { message: 'Tạo đăng ký thành công', data: result.recordset[0] };
   }
 
+  //Check sinh viên đã đăng ký đề tài đó hay chưa
+  private async checkDuplicate(maSV: string, maDT: number) {
+    const result = await this.databaseService.query(
+      `SELECT TOP 1 MaDK FROM dbo.DANGKY
+     WHERE MaSV = @maSV AND MaDT = @maDT`,
+      { maSV, maDT },
+    );
+
+    if (result.recordset.length > 0) {
+      throw new ConflictException('Sinh viên đã đăng ký đề tài này');
+    }
+  }
+
+  //UPDATE 
   async update(maDK: number, dto: UpdateDangKyDto, authorization: string) {
     const fields = {
       maSV: 'MaSV',

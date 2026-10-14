@@ -55,7 +55,7 @@ describe('DeTai CRUD screen', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.nativeElement
-      .querySelector('form')
+      .querySelector('form:not(.table-toolbar)')
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     const request = backend.expectOne('/api/detai');
     expect(request.request.method).toBe('POST');
@@ -66,6 +66,52 @@ describe('DeTai CRUD screen', () => {
     expect(page.mode()).toBeNull();
     expect(page.store.items().length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Tạo thành công');
+  });
+
+  it('searches by ID through the authenticated API and renders a fresh result', async () => {
+    page.searchCode = ' 7 ';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.nativeElement
+      .querySelector('form.table-toolbar')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    const request = backend.expectOne('/api/detai/7');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer ' + token);
+    const found = { ...item, MaDT: 7 };
+    request.flush(found);
+    fixture.detectChanges();
+    expect(page.visibleItems()).toEqual([found]);
+    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Xem tất cả');
+  });
+
+  it('handles missing IDs without displaying stale cached records and can show all again', () => {
+    page.searchCode = '1';
+    page.search();
+    backend
+      .expectOne('/api/detai/1')
+      .flush({ message: 'Không tìm thấy' }, { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+    expect(page.visibleItems()).toEqual([]);
+    expect(page.loading()).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Không tìm thấy');
+    expect(fixture.nativeElement.textContent).toContain('Không có kết quả tìm kiếm.');
+    page.reload();
+    backend.expectOne('/api/detai').flush([item]);
+
+    expect(page.searchId()).toBeNull();
+    expect(page.visibleItems()).toEqual([item]);
+    expect(page.error()).toBe('');
+  });
+
+  it('rejects invalid search IDs without sending HTTP requests', () => {
+    for (const code of ['abc', '0', '-1', '1.5', '2147483648']) {
+      page.searchCode = code;
+      page.search();
+      expect(page.error()).toContain('phải là số nguyên');
+    }
+    backend.expectNone((request) => request.url.startsWith('/api/detai'));
   });
 
   it('loads fresh detail and PATCHes the edited record', () => {

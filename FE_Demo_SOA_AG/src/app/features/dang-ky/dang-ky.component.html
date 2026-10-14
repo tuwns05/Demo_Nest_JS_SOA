@@ -25,12 +25,34 @@
   </p>
 }
 <section class="panel">
-  <div class="table-toolbar">
-    <span class="muted">{{ store.items().length }} đăng ký</span>
-    <button class="button subtle" (click)="reload()" [disabled]="loading() || busy()">
+  <form class="table-toolbar" (ngSubmit)="search()">
+    <div class="search-field">
+      <span aria-hidden="true">⌕</span>
+      <input
+        name="searchCode"
+        aria-label="Tìm theo mã đăng ký"
+        placeholder="Nhập mã đăng ký…"
+        inputmode="numeric"
+        [(ngModel)]="searchCode"
+        [disabled]="loading() || busy()"
+      />
+    </div>
+    <button type="submit" class="button primary" [disabled]="loading() || busy()">Tìm kiếm</button>
+    @if (searchId() !== null) {
+      <button
+        type="button"
+        class="button subtle"
+        (click)="reload()"
+        [disabled]="loading() || busy()"
+      >
+        Xem tất cả
+      </button>
+    }
+    <span class="muted">{{ visibleItems().length }} đăng ký</span>
+    <button type="button" class="button subtle" (click)="reload()" [disabled]="loading() || busy()">
       ↻ Làm mới
     </button>
-  </div>
+  </form>
   <div class="table-scroll" [attr.aria-busy]="loading()">
     <table>
       <thead>
@@ -49,7 +71,7 @@
             <td colspan="6" class="empty-cell">Đang tải danh sách…</td>
           </tr>
         } @else {
-          @for (item of store.items(); track item.MaDK) {
+          @for (item of visibleItems(); track item.MaDK) {
             <tr>
               <td>{{ item.MaDK }}</td>
               <td class="wrap-cell">
@@ -79,7 +101,13 @@
           } @empty {
             <tr>
               <td colspan="6" class="empty-cell">
-                {{ error() ? 'Chưa tải được danh sách. Hãy thử làm mới.' : 'Chưa có đăng ký.' }}
+                {{
+                  searchId() !== null
+                    ? 'Không có kết quả tìm kiếm.'
+                    : error()
+                      ? 'Chưa tải được danh sách. Hãy thử làm mới.'
+                      : 'Chưa có đăng ký.'
+                }}
               </td>
             </tr>
           }

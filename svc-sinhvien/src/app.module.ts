@@ -6,6 +6,7 @@ import { AuthGuard } from './auth.guard.js';
 import { DatabaseModule } from '@soa/database';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AuthClient } from './auth.client.js';
 
 @Module({
   imports: [
@@ -26,6 +27,6 @@ import { AppService } from './app.service.js';
     DatabaseModule.register(),
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [AppService, AuthClient, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

@@ -5,7 +5,8 @@ BEGIN
     CREATE TABLE [dbo].[User] (
         [IdUser] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_User] PRIMARY KEY,
         [UserName] NVARCHAR(100) NOT NULL CONSTRAINT [UQ_User_UserName] UNIQUE,
-        [Password] VARCHAR(255) NOT NULL
+        [Password] VARCHAR(255) NOT NULL,
+        [Role] VARCHAR(20) NULL
     );
 END;
 GO

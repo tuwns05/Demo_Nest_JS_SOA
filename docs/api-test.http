@@ -13,8 +13,7 @@ Content-Type: application/json
   "maSV": "{{maSV}}",
   "hoTen": "Nguyễn Văn A",
   "email": "sv.demo.001@example.com",
-  "lop": "CNTT01",
-  "matKhau": "Demo@123456"
+  "lop": "CNTT01"
 }
 
 ### Danh sách sinh viên

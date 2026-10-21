@@ -11,10 +11,16 @@ import { AuthService } from './auth.service.js';
 import { SignInRequest } from './dto/signIn.request.js';
 import { SignInResponse } from './dto/signIn.reponse.js';
 import { Public } from './decorators/public.decorator.js';
+import { CreateStudentAccountDto } from './dto/create-student-account.dto.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('accounts/student')
+  createStudentAccount(@Body() dto: CreateStudentAccountDto) {
+    return this.authService.createStudentAccount(dto.maSV);
+  }
 
   @Public()
   @HttpCode(HttpStatus.OK)

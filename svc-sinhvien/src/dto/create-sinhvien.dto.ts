@@ -1,15 +1,16 @@
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
   IsString,
-  MinLength,
   MaxLength,
 } from 'class-validator';
 
 export class CreateSinhVienDto {
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
   @IsNotEmpty()
-  @MaxLength(50)
+  @MaxLength(20)
   maSV: string;
 
   @IsString()
@@ -27,9 +28,4 @@ export class CreateSinhVienDto {
   @MaxLength(100)
   lop: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  @MaxLength(255)
-  matKhau: string;
 }

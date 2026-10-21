@@ -6,13 +6,14 @@ Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công k
 | --- | --- | --- |
 | POST | /auth/login | Body user/password của tài khoản quản trị trong dbo.User; 200 access_token, expires_in, token_type; sai thông tin 401 |
 | GET | /auth/profile | Chuỗi protected route; chưa phải hồ sơ người dùng |
+| POST | /auth/accounts/student | Yêu cầu JWT, body maSV; tạo tài khoản role student, mật khẩu ban đầu bằng maSV (bcrypt); dùng lại tài khoản student đã có mà không đổi mật khẩu; 409 nếu username thuộc role khác |
 | GET | /health | 200 status ok khi cả bốn up; 503 degraded nếu có down |
 | GET | /auth/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /sinhvien/health | Kiểm tra DB; 200 hoặc 503 |
-| POST | /sinhvien | Body maSV/hoTen/email/lop/matKhau; 201 message và data |
+| POST | /sinhvien | Body maSV/hoTen/email/lop; tự tạo tài khoản Auth với username và mật khẩu ban đầu bằng maSV; 201 message và data |
 | GET | /sinhvien | 200 mảng sinh viên, không có mật khẩu |
 | GET | /sinhvien/:maSV | 200 thông tin sinh viên; 404 nếu không tồn tại |
-| PATCH | /sinhvien/:maSV | Cập nhật hoTen/email/lop/matKhau; 200 message và data; 400 nếu body rỗng/sai |
+| PATCH | /sinhvien/:maSV | Cập nhật hoTen/email/lop; 200 message và data; 400 nếu body rỗng/sai |
 | DELETE | /sinhvien/:maSV | 200 message và data; 404 không tồn tại; 409 nếu có khóa ngoại tham chiếu |
 | GET | /detai/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /dangky/health | Kiểm tra DB; 200 hoặc 503 |

@@ -7,6 +7,7 @@ import {
 import { DatabaseService } from '@soa/database';
 import { CreateSinhVienDto } from './dto/create-sinhvien.dto.js';
 import { UpdateSinhVienDto } from './dto/update-sinhvien.dto.js';
+import { AuthClient } from './auth.client.js';
 
 function sqlErrorNumber(error: unknown): number | undefined {
   const sqlError = error as {
@@ -18,10 +19,10 @@ function sqlErrorNumber(error: unknown): number | undefined {
 
 @Injectable()
 export class AppService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService, private readonly authClient: AuthClient) {}
 
   //CREATE SINHVIEN
-  async create(dto: CreateSinhVienDto) {
+  async create(dto: CreateSinhVienDto, authorization: string) {
     const check = await this.databaseService.query(
       'SELECT MaSV FROM SINHVIEN WHERE MaSV = @maSV',
       { maSV: dto.maSV },
@@ -31,16 +32,17 @@ export class AppService {
       throw new ConflictException(`Sinh viên ${dto.maSV} đã tồn tại`);
     }
 
+    await this.authClient.createStudentAccount(dto.maSV, authorization);
+
     try {
       await this.databaseService.query(
-        `INSERT INTO SINHVIEN (MaSV, HoTen, Email, Lop, MatKhau)
-     VALUES (@maSV, @hoTen, @email, @lop, @matKhau)`,
+        `INSERT INTO SINHVIEN (MaSV, HoTen, Email, Lop)
+     VALUES (@maSV, @hoTen, @email, @lop)`,
         {
           maSV: dto.maSV,
           hoTen: dto.hoTen,
           email: dto.email,
           lop: dto.lop,
-          matKhau: dto.matKhau,
         },
       );
     } catch (error) {
@@ -86,7 +88,6 @@ export class AppService {
       hoTen: 'HoTen',
       email: 'Email',
       lop: 'Lop',
-      matKhau: 'MatKhau',
     };
     const assignments: string[] = [];
     const parameters: Record<string, unknown> = { maSV };

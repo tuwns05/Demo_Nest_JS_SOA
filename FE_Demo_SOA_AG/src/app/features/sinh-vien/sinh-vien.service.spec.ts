@@ -48,7 +48,6 @@ describe('SinhVienService API and state', () => {
       hoTen: student.HoTen,
       email: student.Email,
       lop: student.Lop,
-      matKhau: '123456',
     };
     store.create(body).subscribe();
     const create = backend.expectOne('/api/sinhvien');

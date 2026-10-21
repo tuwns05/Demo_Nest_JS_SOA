@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   ValidateIf,
   IsString,
-  MinLength,
   MaxLength,
 } from 'class-validator';
 
@@ -25,9 +24,4 @@ export class UpdateSinhVienDto {
   @MaxLength(100)
   lop?: string;
 
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsString()
-  @MinLength(6)
-  @MaxLength(255)
-  matKhau?: string;
 }

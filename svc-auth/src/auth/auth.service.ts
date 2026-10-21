@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '@soa/database';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +17,43 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
+
+  async createStudentAccount(maSV: string) {
+    const findExisting = async () => {
+      const result = await this.databaseService.query(
+        'SELECT [IdUser], [UserName], [Role] FROM dbo.[User] WHERE [UserName] = @username',
+        { username: maSV },
+      );
+      return result.recordset[0];
+    };
+    const accountResponse = (user: Record<string, unknown>) => {
+      if (user.Role !== 'student') {
+        throw new ConflictException(`Tên tài khoản ${maSV} đã được sử dụng`);
+      }
+      return { username: user.UserName, role: user.Role };
+    };
+    const existing = await findExisting();
+    // Retry must never reset an existing student's password.
+    if (existing) return accountResponse(existing);
+
+    const password = await bcrypt.hash(maSV, 12);
+    try {
+      const result = await this.databaseService.query(
+        `INSERT INTO dbo.[User] ([UserName], [Password], [Role])
+         OUTPUT INSERTED.IdUser, INSERTED.UserName, INSERTED.Role
+         VALUES (@username, @password, 'student')`,
+        { username: maSV, password },
+      );
+      return accountResponse(result.recordset[0]);
+    } catch (error) {
+      const sql = error as { number?: number; originalError?: { info?: { number?: number } } };
+      if ([2601, 2627].includes(sql?.number ?? sql?.originalError?.info?.number ?? 0)) {
+        const concurrent = await findExisting();
+        if (concurrent) return accountResponse(concurrent);
+      }
+      throw error;
+    }
+  }
 
   async signIn(username: string, password: string) {
     const result = await this.databaseService.query<UserLoginRecord>(

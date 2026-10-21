@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -35,8 +36,8 @@ export class AppController {
   }
 
   @Post(['', 'create'])
-  async create(@Body() dto: CreateSinhVienDto) {
-    return this.appService.create(dto);
+  async create(@Body() dto: CreateSinhVienDto, @Headers('authorization') authorization: string) {
+    return this.appService.create(dto, authorization);
   }
 
   @Get()

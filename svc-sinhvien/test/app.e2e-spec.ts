@@ -31,7 +31,7 @@ describe('Sinhvien authentication (HTTP)', () => {
     Reflect.defineMetadata('design:paramtypes', [AppService], AppController);
     Reflect.defineMetadata(
       'design:paramtypes',
-      [CreateSinhVienDto],
+      [CreateSinhVienDto, String],
       AppController.prototype,
       'create',
     );
@@ -114,7 +114,6 @@ describe('Sinhvien authentication (HTTP)', () => {
         hoTen: 'Nguyễn Văn A',
         email: 'a@example.com',
         lop: 'CNTT01',
-        matKhau: '123456',
       })
       .expect(201);
     expect(service.create).toHaveBeenCalledOnce();
@@ -132,7 +131,6 @@ describe('Sinhvien authentication (HTTP)', () => {
         hoTen: 'Nguyễn Văn A',
         email: 'a@example.com',
         lop: 'CNTT01',
-        matKhau: '123456',
       })
       .expect(201);
     await request(app.getHttpServer())

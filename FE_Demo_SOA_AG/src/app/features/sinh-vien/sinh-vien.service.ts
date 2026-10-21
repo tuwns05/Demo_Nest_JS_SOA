@@ -15,7 +15,6 @@ export interface CreateSinhVien {
   hoTen: string;
   email: string;
   lop: string;
-  matKhau: string;
 }
 export type UpdateSinhVien = Partial<Omit<CreateSinhVien, 'maSV'>>;
 

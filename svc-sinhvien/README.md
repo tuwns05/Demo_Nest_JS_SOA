@@ -13,7 +13,13 @@ Dịch vụ sinh viên cung cấp CRUD. Các đường dẫn dưới đây dùng
 
 Giữ tương thích `POST /sinhvien/create` và các đường dẫn cũ dưới `/sinhvien/sinh-vien`, bao gồm `/create` và `/health`.
 
-Body tạo gồm `maSV`, `hoTen`, `email`, `lop`, `matKhau` (tối thiểu 6 ký tự). Body cập nhật cho phép `hoTen`, `email`, `lop`, `matKhau`; không đổi `maSV`, không chấp nhận body rỗng, giá trị null hoặc trường lạ. API không trả `MatKhau`. Danh sách trả mảng; chi tiết trả đối tượng; tạo/cập nhật/xóa trả `{ message, data }`.
+Body tạo gồm `maSV`, `hoTen`, `email`, `lop`. Body cập nhật cho phép `hoTen`, `email`, `lop`; không đổi `maSV`, không chấp nhận body rỗng, giá trị null hoặc trường lạ. Danh sách trả mảng; chi tiết trả đối tượng; tạo/cập nhật/xóa trả `{ message, data }`.
+
+Khi tạo mới, service gọi `POST /auth/accounts/student` với `{ maSV }`, chuyển tiếp JWT của request. Auth tạo `UserName = maSV`, băm bcrypt mật khẩu ban đầu bằng maSV và gán riêng `Role = student`. Không lưu mật khẩu mới trong bảng SINHVIEN. API Auth yêu cầu JWT; chưa phân quyền theo role.
+
+Chạy `db/add-user-role.sql` trong SSMS trước khi dùng. Với bảng SINHVIEN cũ có MatKhau NOT NULL, chạy thêm `db/student-password-nullable.sql`.
+
+Auth không sẵn sàng: trả 503, chưa chèn sinh viên. Tài khoản trùng với role khác: trả 409. Khi Auth đã tạo tài khoản nhưng phản hồi bị mất hoặc INSERT sinh viên thất bại, tài khoản có thể đã tồn tại; gửi lại yêu cầu tạo sinh viên sẽ dùng lại tài khoản student cùng username, không đổi mật khẩu. Đây là hai thao tác liên dịch vụ, không phải transaction chung. Xóa sinh viên chưa tự xóa tài khoản Auth.
 
 Lỗi: 400 dữ liệu không hợp lệ; 401 JWT thiếu/sai; 404 mã không tồn tại; 409 trùng dữ liệu hoặc xóa bị khóa ngoại chặn. Xóa không tự xóa dữ liệu đăng ký liên quan.
 
@@ -34,6 +40,7 @@ Khi triển khai, chỉ công khai gateway; giới hạn cổng service trong m�
 | Biến riêng | Ý nghĩa |
 | --- | --- |
 | PORT | Cổng riêng của tiến trình |
+| SERVICE_URL_AUTH | URL Auth, mặc định http://localhost:3004 |
 
 Cấu hình chung đọc từ ../.env: DB_HOST, DB_NAME bắt buộc cho service kết nối SQL; DB_PORT, DB_INSTANCE, DB_ODBC_DRIVER, DB_USER, DB_PASSWORD, DB_CONNECTION_STRING tùy cấu hình. Sinhvien, gateway và auth dùng JWT_SECRET chung; auth dùng JWT_EXPIRES_IN. Xem mẫu gốc và mẫu riêng, không commit .env.
 

@@ -84,7 +84,6 @@ export class SinhVienComponent implements OnInit {
             hoTen: data.HoTen,
             email: data.Email,
             lop: data.Lop,
-            matKhau: '',
           };
           this.mode.set(mode);
         },
@@ -122,7 +121,6 @@ export class SinhVienComponent implements OnInit {
       return;
     }
     const update: UpdateSinhVien = { hoTen: body.hoTen, email: body.email, lop: body.lop };
-    if (body.matKhau) update.matKhau = body.matKhau;
     const operation =
       mode === 'create' ? this.store.create(body) : this.store.update(body.maSV, update);
     this.busy.set(true);
@@ -174,6 +172,6 @@ export class SinhVienComponent implements OnInit {
       .toUpperCase();
   }
   private emptyForm(): CreateSinhVien {
-    return { maSV: '', hoTen: '', email: '', lop: '', matKhau: '' };
+    return { maSV: '', hoTen: '', email: '', lop: '' };
   }
 }

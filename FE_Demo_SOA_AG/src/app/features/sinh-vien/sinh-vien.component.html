@@ -212,7 +212,7 @@
                 name="maSV"
                 [(ngModel)]="form.maSV"
                 required
-                maxlength="50"
+                maxlength="20"
                 [readonly]="mode() === 'edit'"
                 placeholder="VD: SV001"
               />
@@ -254,28 +254,13 @@
                 placeholder="sinhvien@example.com"
               />
             </div>
-            <div class="span-two">
-              <label for="matKhau">{{ mode() === 'create' ? 'Mật khẩu *' : 'Mật khẩu mới' }}</label
-              ><input
-                id="matKhau"
-                name="matKhau"
-                [(ngModel)]="form.matKhau"
-                type="password"
-                [required]="mode() === 'create'"
-                minlength="6"
-                maxlength="255"
-                autocomplete="new-password"
-                placeholder="Tối thiểu 6 ký tự"
-              /><small class="muted">{{
-                mode() === 'edit'
-                  ? 'Để trống nếu không thay đổi mật khẩu.'
-                  : 'Mật khẩu không hiển thị trong hồ sơ sinh viên.'
-              }}</small>
-            </div>
+            @if (mode() === 'create') {
+              <p class="muted span-two">Tài khoản được tạo tự động. Tên đăng nhập và mật khẩu ban đầu là mã sinh viên.</p>
+            }
           </div>
           @if (studentForm.invalid && studentForm.touched) {
             <p class="form-hint">
-              Điền đủ trường bắt buộc, email hợp lệ và mật khẩu tối thiểu 6 ký tự.
+              Điền đủ trường bắt buộc và email hợp lệ.
             </p>
           }
           <div class="modal-actions">

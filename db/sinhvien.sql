@@ -7,7 +7,7 @@ BEGIN
         HoTen NVARCHAR(200) NOT NULL,
         Email NVARCHAR(254) NOT NULL,
         Lop NVARCHAR(100) NOT NULL,
-        MatKhau NVARCHAR(255) NOT NULL
+        MatKhau NVARCHAR(255) NULL
     );
 END;
 GO

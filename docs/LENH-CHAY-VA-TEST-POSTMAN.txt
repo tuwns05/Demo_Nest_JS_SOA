@@ -1,0 +1,96 @@
+﻿CHẠY DỰ ÁN VÀ TEST API BẰNG POSTMAN
+=================================
+Môi trường, SQL Server và dependencies đã được cài đặt, cấu hình sẵn.
+
+1. CHẠY BACKEND (PowerShell)
+
+Dừng backend cũ trước để tránh trùng cổng, sau đó chạy:
+cd C:\work_space\Demo_Nest_JS_SOA
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
+
+2. CHẠY FRONTEND (mở terminal mới)
+
+cd C:\work_space\Demo_Nest_JS_SOA\FE_Demo_SOA_AG
+npm.cmd start
+
+Giao diện: http://localhost:4200
+Tài khoản demo đã seed: demo / Demo@123456
+
+3. KIỂM TRA VÀ ĐĂNG NHẬP BẰNG POSTMAN
+
+Kiểm tra hệ thống (No Auth, không cần body):
+GET http://localhost:3000/health
+200: các service hoạt động; 503: có service không hoạt động.
+
+Đăng nhập (Authorization -> No Auth):
+POST http://localhost:3000/auth/login
+Body -> raw -> JSON:
+{
+  "user": "demo",
+  "password": "Demo@123456"
+}
+
+Copy access_token trong response.
+Các request nghiệp vụ: Authorization -> Bearer Token -> dán access_token.
+
+4. TEST CHỨC NĂNG
+
+URL gốc của từng chức năng:
+Sinh viên: http://localhost:3000/sinhvien
+Đề tài:   http://localhost:3000/detai
+Đăng ký:  http://localhost:3000/dangky
+
+GET URL gốc: lấy danh sách.
+GET URL gốc/mã-hoặc-ID: lấy chi tiết.
+POST URL gốc: tạo mới; Body -> raw -> JSON.
+PATCH URL gốc/mã-hoặc-ID: cập nhật; Body -> raw -> JSON.
+DELETE URL gốc/mã-hoặc-ID: xóa.
+GET/DELETE không cần body.
+Mẫu JSON chi tiết: xem docs/api-test.http hoặc docs/API.md.
+
+Thứ tự demo: đăng nhập -> tạo sinh viên -> tạo đề tài -> tạo đăng ký.
+Ghi lại data.MaDT và data.MaDK trong response để dùng cho request tiếp theo.
+Nếu mã sinh viên/email đã tồn tại, dùng mã/email mới.
+Khi dọn dữ liệu: xóa đăng ký trước -> xóa đề tài -> xóa sinh viên.
+
+5. BẢNG API VÀ BODY DỮ LIỆU
+
+Các đường dẫn trong bảng đều thêm http://localhost:3000 ở phía trước.
+Ví dụ: POST /auth/login = POST http://localhost:3000/auth/login.
+POST/PATCH: copy JSON ở cột Body vào Body -> raw -> JSON.
+GET/DELETE: chọn Body -> none.
+/health và /auth/login: No Auth. Các API còn lại trong bảng: Bearer Token.
+SV001 là mã sinh viên mẫu. Số 1 là ID ví dụ: thay bằng MaDT/MaDK thực tế.
+Trong body tạo đăng ký, maDT cũng phải thay bằng MaDT thực tế (kiểu số).
+
+| API | Body dữ liệu (JSON) |
+| --- | --- |
+| GET /health | Không cần body |
+| POST /auth/login | { "user": "demo", "password": "Demo@123456" } |
+| POST /sinhvien | { "maSV": "SV001", "hoTen": "Nguyễn Văn An", "email": "sv001@example.com", "lop": "CNTT01", "matKhau": "Demo@123456" } |
+| GET /sinhvien | Không cần body |
+| GET /sinhvien/SV001 | Không cần body |
+| PATCH /sinhvien/SV001 | { "hoTen": "Nguyễn Văn An cập nhật", "lop": "CNTT02" } |
+| POST /detai | { "tenDT": "Quản lý đồ án", "moTa": "Ứng dụng SOA", "giangVienHD": "Trần Văn Bình" } |
+| GET /detai | Không cần body |
+| GET /detai/1 | Không cần body |
+| PATCH /detai/1 | { "moTa": "Mô tả đề tài cập nhật" } |
+| POST /dangky | { "maSV": "SV001", "maDT": 1, "trangThai": "Chờ duyệt" } |
+| GET /dangky | Không cần body |
+| GET /dangky/1 | Không cần body |
+| PATCH /dangky/1 | { "trangThai": "Đã duyệt" } |
+| DELETE /dangky/1 | Không cần body |
+| DELETE /detai/1 | Không cần body |
+| DELETE /sinhvien/SV001 | Không cần body |
+| GET /auth/profile | Không cần body |
+| GET /auth/health | Không cần body |
+| GET /sinhvien/health | Không cần body |
+| GET /detai/health | Không cần body |
+| GET /dangky/health | Không cần body |
+
+6. LỖI THƯỜNG GẶP
+
+401: đăng nhập lại và dán token mới.
+400: kiểm tra tên trường, kiểu dữ liệu JSON; maDT phải là số.
+404: kiểm tra đường dẫn và mã/ID thực tế.
+503: kiểm tra backend và SQL Server.

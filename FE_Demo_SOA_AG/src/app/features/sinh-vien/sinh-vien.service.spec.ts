@@ -19,7 +19,7 @@ describe('SinhVienService API and state', () => {
     session = TestBed.inject(SessionService);
     session.start(
       'header.' +
-        btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })) +
+        btoa(JSON.stringify({ role: 'admin', exp: Math.floor(Date.now() / 1000) + 3600 })) +
         '.signature',
       'demo',
     );

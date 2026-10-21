@@ -106,7 +106,7 @@ describe('detai authentication (HTTP)', () => {
 
   it('routes every CRUD operation with a valid JWT', async () => {
     const authorization =
-      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+      'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
     await request(app.getHttpServer())
       .get('/detai')
       .set('Authorization', authorization)
@@ -140,7 +140,7 @@ describe('detai authentication (HTTP)', () => {
 
   it('rejects invalid bodies and IDs before the service', async () => {
     const authorization =
-      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+      'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
     for (const body of [
       {},
       { tenDT: 'Đề tài thử', unexpected: true },
@@ -175,6 +175,21 @@ describe('detai authentication (HTTP)', () => {
       .expect(200, { status: 'ok', service: 'detai' });
   });
 
+  it('allows students to read topics', async () => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/detai').set('Authorization', authorization).expect(200);
+    await request(app.getHttpServer()).get('/detai/1').set('Authorization', authorization).expect(200);
+  });
+
+  it.each(['post', 'patch', 'delete'] as const)('blocks student %s mutations', async method => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer())[method](method === 'post' ? '/detai' : '/detai/1')
+      .set('Authorization', authorization).send({ tenDT: 'Forged' }).expect(403);
+    expect(service.create).not.toHaveBeenCalled();
+    expect(service.update).not.toHaveBeenCalled();
+    expect(service.remove).not.toHaveBeenCalled();
+  });
+
   it('keeps health failures at 503', async () => {
     service.getHealth.mockResolvedValueOnce({
       status: 'down',
@@ -190,16 +205,16 @@ describe('detai authentication (HTTP)', () => {
     [
       'wrong signature',
       'Bearer ' +
-        jwt.sign({ sub: '1' }, { secret: 'another-secret', expiresIn: '1h' }),
+        jwt.sign({ sub: '1', role: 'admin' }, { secret: 'another-secret', expiresIn: '1h' }),
     ],
-    ['expired', 'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: -10 })],
+    ['expired', 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: -10 })],
     ['missing subject', 'Bearer ' + jwt.sign({}, { expiresIn: '1h' })],
     ['blank subject', 'Bearer ' + jwt.sign({ sub: ' ' }, { expiresIn: '1h' })],
-    ['missing expiry', 'Bearer ' + jwt.sign({ sub: '1' })],
+    ['missing expiry', 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' })],
     [
       'wrong algorithm',
       'Bearer ' +
-        jwt.sign({ sub: '1' }, { algorithm: 'HS384', expiresIn: '1h' }),
+        jwt.sign({ sub: '1', role: 'admin' }, { algorithm: 'HS384', expiresIn: '1h' }),
     ],
   ])(
     'rejects %s credentials before business logic',
@@ -215,14 +230,14 @@ describe('detai authentication (HTTP)', () => {
 
   it('accepts direct access with a valid JWT and ignores forged user headers', async () => {
     const token = jwt.sign(
-      { sub: '1', username: 'test-user' },
+      { sub: '1', username: 'test-user', role: 'admin' },
       { expiresIn: '15m' },
     );
     await request(app.getHttpServer())
       .get('/detai/protected')
       .set('Authorization', 'Bearer ' + token)
       .set('x-user-id', 'forged')
-      .expect(200, { user: { sub: '1' }, forwardedUserId: null });
+      .expect(200, { user: { sub: '1', role: 'admin' }, forwardedUserId: null });
     expect(businessLogic).toHaveBeenCalledOnce();
   });
 });

@@ -19,7 +19,7 @@ describe('DangKy CRUD screen', () => {
     TrangThai: 'Chờ duyệt',
   };
   const token =
-    'header.' + btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })) + '.signature';
+    'header.' + btoa(JSON.stringify({ role: 'admin', exp: Math.floor(Date.now() / 1000) + 3600 })) + '.signature';
 
   beforeEach(async () => {
     sessionStorage.clear();

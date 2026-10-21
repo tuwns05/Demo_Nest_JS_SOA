@@ -4,6 +4,8 @@ import {
   Delete,
   Get,
   Headers,
+  Req,
+  ForbiddenException,
   Param,
   Patch,
   Post,
@@ -14,6 +16,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Public } from './public.decorator.js';
 import { CreateSinhVienDto } from './dto/create-sinhvien.dto.js';
 import { UpdateSinhVienDto } from './dto/update-sinhvien.dto.js';
+import { Roles } from './roles.decorator.js';
+import type { AuthenticatedRequest } from './auth.guard.js';
 
 @Controller(['', 'sinh-vien'])
 @ApiTags('Sinh viên')
@@ -45,8 +49,18 @@ export class AppController {
     return this.appService.findAll();
   }
 
+  @Get('me')
+  @Roles('student')
+  findMe(@Req() request: AuthenticatedRequest) {
+    return this.appService.findOne(request.user!.maSV!);
+  }
+
   @Get(':maSV')
-  findOne(@Param('maSV') maSV: string) {
+  @Roles('admin', 'student')
+  findOne(@Param('maSV') maSV: string, @Req() request: AuthenticatedRequest) {
+    if (request.user!.role === 'student' && request.user!.maSV !== maSV) {
+      throw new ForbiddenException('Bạn chỉ được xem thông tin của mình');
+    }
     return this.appService.findOne(maSV);
   }
 

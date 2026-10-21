@@ -41,3 +41,11 @@ export class CreateDangKyDto {
 export class UpdateDangKyDto extends PartialType(CreateDangKyDto, {
   skipNullProperties: false,
 }) {}
+
+export class StudentDangKyDto {
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  maDT!: number;
+}

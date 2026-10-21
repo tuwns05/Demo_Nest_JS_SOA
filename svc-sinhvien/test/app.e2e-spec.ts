@@ -73,21 +73,49 @@ describe('Sinhvien authentication (HTTP)', () => {
       .expect({ status: 'ok', service: 'sinhvien' });
   });
 
+  it('returns only the signed-in student profile', async () => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/sinhvien/me').set('Authorization', authorization).expect(200);
+    expect(service.findOne).toHaveBeenCalledWith('SV001');
+    service.findOne.mockClear();
+    await request(app.getHttpServer()).get('/sinhvien/SV002').set('Authorization', authorization).expect(403);
+    expect(service.findOne).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).get('/sinhvien/SV001').set('Authorization', authorization).expect(200);
+  });
+
+  it.each(['get', 'post', 'patch', 'delete'] as const)('blocks student %s access to management', async method => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer())[method](['patch', 'delete'].includes(method) ? '/sinhvien/SV001' : '/sinhvien')
+      .set('Authorization', authorization).send({ maSV: 'SV002' }).expect(403);
+    expect(service.findAll).not.toHaveBeenCalled();
+    expect(service.create).not.toHaveBeenCalled();
+    expect(service.update).not.toHaveBeenCalled();
+    expect(service.remove).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { sub: '1' }, { sub: '1', role: 'teacher' }, { sub: '1', role: 'student' },
+  ])('rejects missing or unsupported role claims: %j', async claims => {
+    const authorization = 'Bearer ' + jwt.sign(claims, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/sinhvien').set('Authorization', authorization).expect(401);
+    expect(service.findAll).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['missing', undefined],
     ['malformed', 'Basic abc'],
     ['invalid', 'Bearer invalid-token'],
     [
       'wrong signature',
-      `Bearer ${jwt.sign({ sub: '1' }, { secret: 'another-secret', expiresIn: '1h' })}`,
+      `Bearer ${jwt.sign({ sub: '1', role: 'admin' }, { secret: 'another-secret', expiresIn: '1h' })}`,
     ],
-    ['expired', `Bearer ${jwt.sign({ sub: '1' }, { expiresIn: -10 })}`],
+    ['expired', `Bearer ${jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: -10 })}`],
     ['missing subject', `Bearer ${jwt.sign({}, { expiresIn: '1h' })}`],
     ['blank subject', `Bearer ${jwt.sign({ sub: ' ' }, { expiresIn: '1h' })}`],
-    ['missing expiry', `Bearer ${jwt.sign({ sub: '1' })}`],
+    ['missing expiry', `Bearer ${jwt.sign({ sub: '1', role: 'admin' })}`],
     [
       'wrong algorithm',
-      `Bearer ${jwt.sign({ sub: '1' }, { algorithm: 'HS384', expiresIn: '1h' })}`,
+      `Bearer ${jwt.sign({ sub: '1', role: 'admin' }, { algorithm: 'HS384', expiresIn: '1h' })}`,
     ],
   ])(
     'rejects %s credentials before executing business logic',
@@ -103,7 +131,7 @@ describe('Sinhvien authentication (HTTP)', () => {
 
   it('accepts a valid auth-service JWT when called directly', async () => {
     const token = jwt.sign(
-      { sub: '1', username: 'test-user' },
+      { sub: '1', username: 'test-user', role: 'admin' },
       { expiresIn: '15m' },
     );
     await request(app.getHttpServer())
@@ -120,7 +148,7 @@ describe('Sinhvien authentication (HTTP)', () => {
   });
 
   it('exposes the canonical CRUD routes with JWT protection', async () => {
-    const token = jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+    const token = jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
     const authorization = `Bearer ${token}`;
     await request(app.getHttpServer()).get('/sinhvien/health').expect(200);
     await request(app.getHttpServer())
@@ -164,7 +192,7 @@ describe('Sinhvien authentication (HTTP)', () => {
     { matKhau: '123' },
     { maSV: 'NEW' },
   ])('rejects invalid updates: %j', async (body) => {
-    const token = jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+    const token = jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
     await request(app.getHttpServer())
       .patch('/sinhvien/SV001')
       .set('Authorization', `Bearer ${token}`)

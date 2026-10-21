@@ -23,7 +23,7 @@ export class AuthComponent {
   login(): void {
     if (this.busy()) return;
     if (!this.user.trim()) {
-      this.error.set('Vui lòng nhập tài khoản quản trị.');
+      this.error.set('Vui lòng nhập tài khoản.');
       return;
     }
     this.busy.set(true);
@@ -36,7 +36,9 @@ export class AuthComponent {
           this.password = '';
           const target = this.route.snapshot.queryParamMap.get('returnUrl');
           void this.router.navigateByUrl(
-            target?.startsWith('/') && !target.startsWith('//') ? target : '/sinh-vien',
+            this.auth.session.role() === 'student'
+              ? this.auth.session.home()
+              : target?.startsWith('/') && !target.startsWith('//') ? target : this.auth.session.home(),
           );
         },
         error: (error) => {

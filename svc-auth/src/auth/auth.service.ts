@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '@soa/database';
 import { ConfigService } from '@nestjs/config';
@@ -8,6 +8,7 @@ interface UserLoginRecord extends Record<string, unknown> {
   IdUser: number;
   UserName: string;
   Password: string;
+  Role: string | null;
 }
 
 @Injectable()
@@ -57,7 +58,7 @@ export class AuthService {
 
   async signIn(username: string, password: string) {
     const result = await this.databaseService.query<UserLoginRecord>(
-      'SELECT TOP (1) [IdUser], [UserName], [Password] FROM [dbo].[User] WHERE [UserName] = @username',
+      'SELECT TOP (1) [IdUser], [UserName], [Password], [Role] FROM [dbo].[User] WHERE [UserName] = @username',
       { username: username.trim() },
     );
     const user = result.recordset[0];
@@ -66,7 +67,13 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản hoặc mật khẩu không hợp lệ');
     }
 
-    const payload = { sub: String(user.IdUser), username: user.UserName };
+    if (user.Role !== 'admin' && user.Role !== 'student') {
+      throw new ForbiddenException('Tài khoản chưa được gán vai trò hợp lệ. Vui lòng liên hệ quản trị viên.');
+    }
+    const payload = {
+      sub: String(user.IdUser), username: user.UserName, role: user.Role,
+      ...(user.Role === 'student' ? { maSV: user.UserName } : {}),
+    };
     return {
       access_token: await this.jwtService.signAsync(payload),
       expires_in: this.config.getOrThrow<string>('JWT_EXPIRES_IN'),

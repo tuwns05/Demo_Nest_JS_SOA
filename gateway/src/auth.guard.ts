@@ -19,6 +19,7 @@ export class AuthGuard implements CanActivate {
       const payload = await this.jwt.verifyAsync(match[1], { algorithms: ['HS256'] });
       if ((typeof payload.sub !== 'string' && typeof payload.sub !== 'number') ||
           String(payload.sub).trim() === '') throw new Error('Thiếu định danh người dùng');
+      if (payload.role !== 'admin' && payload.role !== 'student') throw new Error('Thiếu vai trò');
       request.user = { sub: payload.sub };
     } catch {
       throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');

@@ -3,6 +3,7 @@ import {
     ExecutionContext,
     Injectable,
     UnauthorizedException,
+    ForbiddenException,
 } from '@nestjs/common'
 
 import { JwtService } from '@nestjs/jwt'
@@ -37,6 +38,14 @@ export class AuthGuard implements CanActivate {
             request['user'] = payload;
         } catch {
             throw new UnauthorizedException()
+        }
+        const user = request['user'];
+        if (user.role !== 'admin' && user.role !== 'student') {
+            throw new UnauthorizedException('Vui lòng đăng nhập lại');
+        }
+        const roles = this.reflector.getAllAndOverride<string[]>('allowed_roles', [context.getHandler(), context.getClass()]) ?? ['admin'];
+        if (!roles.includes(user.role)) {
+            throw new ForbiddenException('Bạn không có quyền thực hiện thao tác này');
         }
         return true;
     }

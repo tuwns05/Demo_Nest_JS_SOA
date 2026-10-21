@@ -15,7 +15,12 @@ test('creates a student account with a bcrypt hash of MaSV and supports login', 
       return { recordset: [account] };
     }
     return { recordset: account ? [account] : [] };
-  } }, { signAsync: async payload => { assert.equal(payload.username, 'SV001'); return 'signed-token'; } },
+  } }, { signAsync: async payload => {
+    assert.equal(payload.username, 'SV001');
+    assert.equal(payload.role, 'student');
+    assert.equal(payload.maSV, 'SV001');
+    return 'signed-token';
+  } },
   { getOrThrow: () => '15m' });
   assert.deepEqual(await service.createStudentAccount('SV001'), { username: 'SV001', role: 'student' });
   assert.equal((await service.signIn('SV001', 'SV001')).access_token, 'signed-token');

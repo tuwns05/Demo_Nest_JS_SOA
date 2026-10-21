@@ -1,0 +1,26 @@
+:host { display: block; }
+.student-profile, .student-history { padding: 1.5rem; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.section-heading h2 { margin: 0; font-size: 1.15rem; }
+.section-heading p { margin: .5rem 0 0; }
+.profile-intro { display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0; }
+.profile-intro h3 { margin: 0 0 .5rem; font-size: 1.35rem; }
+.profile-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 0; padding-top: 1.25rem; border-top: 1px solid #e8edf3; }
+dt { color: #64748b; font-size: .85rem; margin-bottom: .5rem; }
+dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.student-section { margin: 2rem 0; }
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; }
+.topic-card { display: flex; flex-direction: column; padding: 1.5rem; }
+.topic-card h3 { margin: .75rem 0; font-size: 1.1rem; overflow-wrap: anywhere; }
+.topic-description { color: #475569; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; flex: 1; }
+.topic-card .button { margin-top: .75rem; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 1rem .75rem; border-bottom: 1px solid #e8edf3; }
+th { color: #64748b; font-size: .8rem; white-space: nowrap; }
+.empty-state { padding: 2rem; text-align: center; color: #64748b; }
+@media (max-width: 700px) {
+  .profile-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section-heading { align-items: flex-start; flex-wrap: wrap; }
+  .student-profile, .student-history, .topic-card { padding: 1rem; }
+}

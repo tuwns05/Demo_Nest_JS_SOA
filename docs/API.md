@@ -1,5 +1,7 @@
 # Hợp đồng API
 
+Phân quyền admin/student và các endpoint cá nhân được mô tả tại [Phân quyền sinh viên](PHAN-QUYEN-SINH-VIEN.md). API quản trị yêu cầu admin; student dùng /sinhvien/me, /dangky/me và API đọc đề tài. JWT cũ cần đăng nhập lại.
+
 Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công khai. Route khác cần `Authorization: Bearer <token>`.
 
 | Method | Route | Phản hồi hiện có |

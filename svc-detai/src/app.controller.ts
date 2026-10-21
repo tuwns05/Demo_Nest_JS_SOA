@@ -13,6 +13,7 @@ import { CreateDeTaiDto, UpdateDeTaiDto } from './dto/detai.dto.js';
 import { AppService } from './app.service.js';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Public } from './public.decorator.js';
+import { Roles } from './roles.decorator.js';
 
 @Controller()
 @ApiBearerAuth()
@@ -21,6 +22,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
+  @Roles('admin', 'student')
   findAll() {
     return this.appService.findAll();
   }
@@ -58,6 +60,7 @@ export class AppController {
   }
 
   @Get(':maDT')
+  @Roles('admin', 'student')
   findOne(@Param('maDT', ParseIntPipe) maDT: number) {
     return this.appService.findOne(maDT);
   }

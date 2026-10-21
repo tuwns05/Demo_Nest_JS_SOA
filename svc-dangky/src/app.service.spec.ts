@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '@soa/database';
 import { AppService } from './app.service.js';
 import { SinhVienClient } from './clients/sinhvien.client.js';
@@ -18,7 +18,7 @@ describe('Registration CRUD', () => {
   });
 
   it('checks both references with the JWT before inserting', async () => {
-    query.mockResolvedValue({ recordset: [{ MaDK: 5 }] });
+    query.mockResolvedValueOnce({ recordset: [] }).mockResolvedValueOnce({ recordset: [{ MaDK: 5 }] });
     const result = await service.create(
       { maSV: 'SV001', maDT: 2 },
       'Bearer test',
@@ -69,6 +69,19 @@ describe('Registration CRUD', () => {
       BadRequestException,
     );
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it('filters registrations by the supplied authenticated student ID', async () => {
+    const rows = [{ MaDK: 1, MaSV: 'SV001', MaDT: 2 }];
+    query.mockResolvedValue({ recordset: rows });
+    await expect(service.findMine('SV001')).resolves.toEqual(rows);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('WHERE MaSV = @maSV'), { maSV: 'SV001' });
+  });
+
+  it('rejects duplicate registrations before inserting', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ MaDK: 1 }] });
+    await expect(service.create({ maSV: 'SV001', maDT: 2 }, 'Bearer test')).rejects.toBeInstanceOf(ConflictException);
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it('returns 404 for missing details and deletions', async () => {

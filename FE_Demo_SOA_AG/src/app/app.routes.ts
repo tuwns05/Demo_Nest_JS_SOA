@@ -13,23 +13,32 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'tong-quan' },
       {
         path: 'tong-quan',
+        data: { roles: ['admin'] },
         loadComponent: () =>
           import('./features/gateway/gateway.component').then((m) => m.GatewayComponent),
       },
       {
         path: 'sinh-vien',
+        data: { roles: ['admin'] },
         loadComponent: () =>
           import('./features/sinh-vien/sinh-vien.component').then((m) => m.SinhVienComponent),
       },
       {
         path: 'de-tai',
+        data: { roles: ['admin'] },
         loadComponent: () =>
           import('./features/de-tai/de-tai.component').then((m) => m.DeTaiComponent),
       },
       {
         path: 'dang-ky',
+        data: { roles: ['admin'] },
         loadComponent: () =>
           import('./features/dang-ky/dang-ky.component').then((m) => m.DangKyComponent),
+      },
+      {
+        path: 'sinh-vien-ca-nhan',
+        data: { roles: ['student'] },
+        loadComponent: () => import('./features/student/student.component').then((m) => m.StudentComponent),
       },
       {
         path: 'tai-khoan',

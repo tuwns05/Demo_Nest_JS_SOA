@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
-import { CreateDangKyDto, UpdateDangKyDto } from '../src/dto/dangky.dto.js';
+import { CreateDangKyDto, UpdateDangKyDto, StudentDangKyDto } from '../src/dto/dangky.dto.js';
 import { Test } from '@nestjs/testing';
 import { Controller, Get, Req, type INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -32,6 +32,7 @@ class ProtectedController {
 describe('dangky authentication (HTTP)', () => {
   let app: INestApplication;
   const service = {
+    findMine: vi.fn().mockResolvedValue([]),
     findAll: vi.fn().mockResolvedValue([]),
     findOne: vi.fn().mockResolvedValue({ MaDK: 1 }),
     create: vi.fn().mockResolvedValue({ message: 'created' }),
@@ -42,6 +43,7 @@ describe('dangky authentication (HTTP)', () => {
 
   beforeAll(async () => {
     Reflect.defineMetadata('design:paramtypes', [AppService], AppController);
+    Reflect.defineMetadata('design:paramtypes', [StudentDangKyDto, Object, String], AppController.prototype, 'createMine');
     Reflect.defineMetadata(
       'design:paramtypes',
       [CreateDangKyDto, String],
@@ -108,7 +110,7 @@ describe('dangky authentication (HTTP)', () => {
 
   it('routes every CRUD operation with a valid JWT', async () => {
     const authorization =
-      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+      'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
     await request(app.getHttpServer())
       .get('/dangky')
       .set('Authorization', authorization)
@@ -144,7 +146,7 @@ describe('dangky authentication (HTTP)', () => {
 
   it('rejects invalid bodies and IDs before the service', async () => {
     const authorization =
-      'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: '15m' });
+      'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
     for (const body of [
       {},
       { maSV: 'SV001', maDT: 1, unexpected: true },
@@ -179,6 +181,40 @@ describe('dangky authentication (HTTP)', () => {
       .expect(200, { status: 'ok', service: 'dangky' });
   });
 
+  it('uses the signed student identity to list and create registrations', async () => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/dangky/me').set('Authorization', authorization).expect(200, []);
+    expect(service.findMine).toHaveBeenCalledWith('SV001');
+    await request(app.getHttpServer()).post('/dangky/me').set('Authorization', authorization)
+      .send({ maDT: 3 }).expect(201);
+    expect(service.create).toHaveBeenCalledWith({ maSV: 'SV001', maDT: 3, trangThai: 'Chờ duyệt' }, authorization);
+  });
+
+  it.each([
+    { maDT: 1, maSV: 'SV002' }, { maDT: 1, trangThai: 'Đã duyệt' },
+    { maDT: 1, ngayDangKy: '2026-01-01' }, { maDT: 0 }, {},
+  ])('rejects forged or invalid student registration fields: %j', async body => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).post('/dangky/me').set('Authorization', authorization).send(body).expect(400);
+    expect(service.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['get', 'post', 'patch', 'delete'] as const)('blocks student %s access to admin registration APIs', async method => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer())[method](['patch', 'delete'].includes(method) ? '/dangky/1' : '/dangky')
+      .set('Authorization', authorization).send({ maSV: 'SV002', maDT: 1 }).expect(403);
+    expect(service.findAll).not.toHaveBeenCalled();
+    expect(service.create).not.toHaveBeenCalled();
+    expect(service.update).not.toHaveBeenCalled();
+    expect(service.remove).not.toHaveBeenCalled();
+  });
+
+  it('blocks student access to another registration by ID', async () => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/dangky/1').set('Authorization', authorization).expect(403);
+    expect(service.findOne).not.toHaveBeenCalled();
+  });
+
   it('keeps health failures at 503', async () => {
     service.getHealth.mockResolvedValueOnce({
       status: 'down',
@@ -194,16 +230,16 @@ describe('dangky authentication (HTTP)', () => {
     [
       'wrong signature',
       'Bearer ' +
-        jwt.sign({ sub: '1' }, { secret: 'another-secret', expiresIn: '1h' }),
+        jwt.sign({ sub: '1', role: 'admin' }, { secret: 'another-secret', expiresIn: '1h' }),
     ],
-    ['expired', 'Bearer ' + jwt.sign({ sub: '1' }, { expiresIn: -10 })],
+    ['expired', 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: -10 })],
     ['missing subject', 'Bearer ' + jwt.sign({}, { expiresIn: '1h' })],
     ['blank subject', 'Bearer ' + jwt.sign({ sub: ' ' }, { expiresIn: '1h' })],
-    ['missing expiry', 'Bearer ' + jwt.sign({ sub: '1' })],
+    ['missing expiry', 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' })],
     [
       'wrong algorithm',
       'Bearer ' +
-        jwt.sign({ sub: '1' }, { algorithm: 'HS384', expiresIn: '1h' }),
+        jwt.sign({ sub: '1', role: 'admin' }, { algorithm: 'HS384', expiresIn: '1h' }),
     ],
   ])(
     'rejects %s credentials before business logic',
@@ -219,14 +255,14 @@ describe('dangky authentication (HTTP)', () => {
 
   it('accepts direct access with a valid JWT and ignores forged user headers', async () => {
     const token = jwt.sign(
-      { sub: '1', username: 'test-user' },
+      { sub: '1', username: 'test-user', role: 'admin' },
       { expiresIn: '15m' },
     );
     await request(app.getHttpServer())
       .get('/dangky/protected')
       .set('Authorization', 'Bearer ' + token)
       .set('x-user-id', 'forged')
-      .expect(200, { user: { sub: '1' }, forwardedUserId: null });
+      .expect(200, { user: { sub: '1', role: 'admin' }, forwardedUserId: null });
     expect(businessLogic).toHaveBeenCalledOnce();
   });
 });

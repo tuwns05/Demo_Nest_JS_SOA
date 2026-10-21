@@ -5,6 +5,8 @@ interface Session {
   token: string;
   username: string;
   expiresAt: number;
+  role: 'admin' | 'student';
+  maSV?: string;
 }
 const STORAGE_KEY = 'soa.session';
 
@@ -16,6 +18,8 @@ export class SessionService implements OnDestroy {
   readonly token = computed(() => this.state()?.token ?? null);
   readonly username = computed(() => this.state()?.username ?? '');
   readonly authenticated = computed(() => this.state() !== null);
+  readonly role = computed(() => this.state()?.role ?? null);
+  readonly home = computed(() => this.role() === 'student' ? '/sinh-vien-ca-nhan' : '/tong-quan');
 
   constructor() {
     this.scheduleExpiry();
@@ -29,11 +33,17 @@ export class SessionService implements OnDestroy {
     // Đọc exp để quản lý phiên ở UI; backend vẫn xác minh chữ ký JWT.
     const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as {
       exp: number;
+      role: 'admin' | 'student';
+      maSV?: string;
     };
     if (!Number.isFinite(payload.exp) || payload.exp * 1000 <= Date.now()) {
       throw new Error('Token không có thời hạn hợp lệ');
     }
-    const session = { token, username, expiresAt: payload.exp * 1000 };
+    if ((payload.role !== 'admin' && payload.role !== 'student') ||
+        (payload.role === 'student' && !payload.maSV?.trim())) {
+      throw new Error('Phiên thiếu vai trò hợp lệ. Vui lòng đăng nhập lại.');
+    }
+    const session = { token, username, role: payload.role, maSV: payload.maSV, expiresAt: payload.exp * 1000 };
     this.state.set(session);
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
@@ -62,7 +72,8 @@ export class SessionService implements OnDestroy {
         typeof value.token === 'string' &&
         typeof value.username === 'string' &&
         typeof value.expiresAt === 'number' &&
-        value.expiresAt > Date.now()
+        value.expiresAt > Date.now() &&
+        (value.role === 'admin' || (value.role === 'student' && typeof value.maSV === 'string' && !!value.maSV.trim()))
       )
         return value;
       sessionStorage.removeItem(STORAGE_KEY);

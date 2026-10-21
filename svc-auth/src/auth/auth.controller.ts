@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   ServiceUnavailableException,
+  SetMetadata,
 } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { SignInRequest } from './dto/signIn.request.js';
@@ -40,6 +41,7 @@ export class AuthController {
   }
 
   @Get('profile')
+  @SetMetadata('allowed_roles', ['admin', 'student'])
   getProfile(): string {
     return 'protected route';
   }

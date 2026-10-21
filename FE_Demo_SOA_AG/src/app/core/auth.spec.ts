@@ -14,7 +14,7 @@ import { authInterceptor } from './auth.interceptor';
 import { SessionService } from './session.service';
 
 function token(exp = Math.floor(Date.now() / 1000) + 3600): string {
-  return 'header.' + btoa(JSON.stringify({ sub: '1', exp })) + '.signature';
+  return 'header.' + btoa(JSON.stringify({ sub: '1', exp, role: 'admin' })) + '.signature';
 }
 
 describe('Authentication flow', () => {
@@ -100,6 +100,31 @@ describe('Authentication flow', () => {
 
   it('rejects expired tokens', () => {
     expect(() => session.start(token(Math.floor(Date.now() / 1000) - 5), 'demo')).toThrow();
+    expect(session.authenticated()).toBe(false);
+  });
+
+  it('redirects a student away from admin pages and restores the role', () => {
+    const jwt = 'header.' + btoa(JSON.stringify({ sub: '2', role: 'student', maSV: 'SV001', exp: Math.floor(Date.now() / 1000) + 3600 })) + '.signature';
+    session.start(jwt, 'SV001');
+    expect(session.role()).toBe('student');
+    expect(session.home()).toBe('/sinh-vien-ca-nhan');
+    const result = TestBed.runInInjectionContext(() => authGuard(
+      { data: { roles: ['admin'] } } as unknown as ActivatedRouteSnapshot,
+      { url: '/sinh-vien' } as RouterStateSnapshot,
+    ));
+    expect(String(result)).toBe('/sinh-vien-ca-nhan');
+    expect(TestBed.runInInjectionContext(() => authGuard(
+      { data: { roles: ['student'] } } as unknown as ActivatedRouteSnapshot,
+      { url: '/sinh-vien-ca-nhan' } as RouterStateSnapshot,
+    ))).toBe(true);
+    const restored = TestBed.runInInjectionContext(() => new SessionService());
+    expect(restored.role()).toBe('student');
+    restored.ngOnDestroy();
+  });
+
+  it('rejects a legacy token without a role', () => {
+    const jwt = 'header.' + btoa(JSON.stringify({ sub: '1', exp: Math.floor(Date.now() / 1000) + 3600 })) + '.signature';
+    expect(() => session.start(jwt, 'demo')).toThrow();
     expect(session.authenticated()).toBe(false);
   });
 

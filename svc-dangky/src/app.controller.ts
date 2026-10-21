@@ -8,18 +8,39 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { CreateDangKyDto, UpdateDangKyDto } from './dto/dangky.dto.js';
+import { CreateDangKyDto, UpdateDangKyDto, StudentDangKyDto } from './dto/dangky.dto.js';
 import { AppService } from './app.service.js';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Public } from './public.decorator.js';
+import { Roles } from './roles.decorator.js';
+import type { AuthenticatedRequest } from './auth.guard.js';
 
 @Controller()
 @ApiBearerAuth()
 @ApiTags('Đăng ký')
 export class AppController {
   constructor(private readonly appService: AppService) {}
+
+  @Get('me')
+  @Roles('student')
+  findMine(@Req() request: AuthenticatedRequest) {
+    return this.appService.findMine(request.user!.maSV!);
+  }
+
+  @Post('me')
+  @Roles('student')
+  createMine(
+    @Body() dto: StudentDangKyDto,
+    @Req() request: AuthenticatedRequest,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.appService.create({
+      maSV: request.user!.maSV!, maDT: dto.maDT, trangThai: 'Chờ duyệt',
+    }, authorization);
+  }
 
   @Get()
   findAll() {

@@ -15,7 +15,7 @@ import { AuthService } from './auth.service';
       <span class="avatar large">{{ auth.session.username().slice(0, 2).toUpperCase() }}</span>
       <div>
         <h2>{{ auth.session.username() }}</h2>
-        <p class="muted">Đang đăng nhập</p>
+        <p class="muted">{{ auth.session.role() === 'student' ? 'Sinh viên' : 'Quản trị viên' }}</p>
       </div>
       <button class="button subtle" (click)="auth.logout()">Đăng xuất</button>
     </section>

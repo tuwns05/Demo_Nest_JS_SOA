@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
@@ -21,10 +21,12 @@ export class App {
     ),
     { initialValue: false },
   );
-  readonly navigation = [
+  readonly navigation = computed(() => this.auth.session.role() === 'student' ? [
+    { path: '/sinh-vien-ca-nhan', label: 'Hồ sơ & đăng ký đồ án', icon: '▤' },
+  ] : [
     { path: '/tong-quan', label: 'Tổng quan', icon: '◈' },
     { path: '/sinh-vien', label: 'Sinh viên', icon: '▤' },
     { path: '/de-tai', label: 'Đề tài', icon: '▧' },
     { path: '/dang-ky', label: 'Đăng ký', icon: '↗' },
-  ];
+  ]);
 }

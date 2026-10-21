@@ -13,7 +13,7 @@ describe('DeTai CRUD screen', () => {
   let session: SessionService;
   const item = { MaDT: 1, TenDT: 'Quản lý đồ án', MoTa: null, GiangVienHD: null };
   const token =
-    'header.' + btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })) + '.signature';
+    'header.' + btoa(JSON.stringify({ role: 'admin', exp: Math.floor(Date.now() / 1000) + 3600 })) + '.signature';
 
   beforeEach(async () => {
     sessionStorage.clear();

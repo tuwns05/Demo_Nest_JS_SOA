@@ -2,13 +2,13 @@
 <div class="app-layout" [class.guest-layout]="!auth.session.authenticated() || isLogin()">
   @if (auth.session.authenticated() && !isLogin()) {
     <aside class="sidebar">
-      <a class="brand" routerLink="/tong-quan"
+      <a class="brand" [routerLink]="auth.session.home()"
         ><span class="brand-mark" aria-hidden="true">S</span
         ><span>SOA <strong>Campus</strong><small>QUẢN LÝ ĐỒ ÁN</small></span></a
       >
       <span class="nav-caption">MENU</span>
       <nav aria-label="Điều hướng chính">
-        @for (item of navigation; track item.path) {
+        @for (item of navigation(); track item.path) {
           <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
             @switch (item.path) {
               @case ('/tong-quan') {

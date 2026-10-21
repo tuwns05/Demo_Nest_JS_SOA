@@ -34,6 +34,14 @@ export class AppService {
     return result.recordset[0];
   }
 
+  async findMine(maSV: string) {
+    const result = await this.databaseService.query(
+      'SELECT MaDK, MaSV, MaDT, NgayDangKy, TrangThai FROM dbo.DANGKY WHERE MaSV = @maSV ORDER BY MaDK DESC',
+      { maSV },
+    );
+    return result.recordset;
+  }
+
   private async checkReferences(
     maSV: string,
     maDT: number,

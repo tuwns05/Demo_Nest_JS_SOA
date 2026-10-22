@@ -64,3 +64,13 @@ Xem [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md) để clone mã 
 Sau khi khởi động, giao diện nằm tại `http://localhost:4200` và gateway tại `http://localhost:3000`.
 
 Thông tin chi tiết về endpoint và dữ liệu nằm trong [Tài liệu API](docs/API.md). Có thể thử các yêu cầu bằng [api-test.http](docs/api-test.http).
+
+## Redis Cache và chống Cache Stampede
+
+`svc-sinhvien` và `svc-detai` dùng gói chung `@soa/cache` cho Cache-Aside, TTL có jitter, invalidation sau CRUD và Redis Distributed Lock theo key. Lock có token, gia hạn, thời hạn chờ và Lua bảo vệ publish/unlock; generation ngăn truy vấn cũ ghi cache trở lại sau cập nhật. Khi Redis lỗi hoặc chờ quá hạn, GET trả 503 để tránh dồn tải SQL. Ghi SQL thành công vẫn trả thành công nếu invalidate lỗi; giới hạn stale cache được nêu trong tài liệu.
+
+- [Redis được triển khai ở đâu, cấu hình và cách chạy](docs/redis-cache.md)
+- [Cơ chế chống Cache Stampede và giới hạn](docs/cache-stampede.md)
+- [Kiểm thử, k6 và kịch bản thuyết trình](docs/redis-testing.md)
+
+Chạy Redis trực tiếp qua WSL/Ubuntu bằng `wsl -d Ubuntu sudo service redis-server start`, hoặc kết nối Redis có sẵn qua `REDIS_URL`. Dự án không yêu cầu Docker. Cài `shared/cache` trước hai service trên. Xem hướng dẫn cài đặt và cấu hình trong tài liệu Redis.

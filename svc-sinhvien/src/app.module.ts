@@ -1,3 +1,4 @@
+import { RedisModule } from '@soa/cache';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -25,6 +26,7 @@ import { AuthClient } from './auth.client.js';
       },
     }),
     DatabaseModule.register(),
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService, AuthClient, { provide: APP_GUARD, useClass: AuthGuard }],

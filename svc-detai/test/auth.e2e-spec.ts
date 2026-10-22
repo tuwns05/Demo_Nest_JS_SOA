@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { CacheService } from '@soa/cache';
 import { ValidationPipe } from '@nestjs/common';
 import { CreateDeTaiDto, UpdateDeTaiDto } from '../src/dto/detai.dto.js';
 import { Test } from '@nestjs/testing';
@@ -63,6 +64,8 @@ describe('detai authentication (HTTP)', () => {
         getOrThrow: (key: string) =>
           key === 'JWT_SECRET' ? secret : 'http://localhost:3001',
       })
+      .overrideProvider(CacheService)
+      .useValue({})
       .overrideProvider(DatabaseService)
       .useValue({})
       .overrideProvider(AppService)

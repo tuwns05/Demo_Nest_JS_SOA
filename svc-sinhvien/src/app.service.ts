@@ -1,3 +1,4 @@
+import { CacheService } from '@soa/cache';
 import {
   BadRequestException,
   ConflictException,
@@ -19,7 +20,7 @@ function sqlErrorNumber(error: unknown): number | undefined {
 
 @Injectable()
 export class AppService {
-  constructor(private readonly databaseService: DatabaseService, private readonly authClient: AuthClient) {}
+  constructor(private readonly databaseService: DatabaseService, private readonly authClient: AuthClient, private readonly cache: CacheService) {}
 
   //CREATE SINHVIEN
   async create(dto: CreateSinhVienDto, authorization: string) {
@@ -53,7 +54,8 @@ export class AppService {
       }
       throw error;
     }
-    const sinhVien = await this.findOne(dto.maSV);
+    await this.cache.invalidate('sinhvien', dto.maSV);
+    const sinhVien = await this.loadOne(dto.maSV);
     return {
       message: 'Thêm sinh viên thành công',
       data: sinhVien,
@@ -61,6 +63,10 @@ export class AppService {
   }
 
   async findAll() {
+    return this.cache.remember('sinhvien', 'all', 'list', () => this.loadAll());
+  }
+
+  private async loadAll() {
     const result = await this.databaseService.query(
       'SELECT MaSV, HoTen, Email, Lop FROM SINHVIEN ORDER BY MaSV',
     );
@@ -69,6 +75,10 @@ export class AppService {
 
   //FIND SINHVIEN (MASV)
   async findOne(maSV: string) {
+    return this.cache.remember('sinhvien', String(maSV), 'detail', () => this.loadOne(maSV));
+  }
+
+  private async loadOne(maSV: string) {
     const result = await this.databaseService.query(
       'SELECT MaSV, HoTen, Email, Lop FROM SINHVIEN WHERE MaSV = @maSV',
       { maSV },
@@ -113,6 +123,7 @@ export class AppService {
       if (!result.recordset[0]) {
         throw new NotFoundException(`Không tìm thấy sinh viên ${maSV}`);
       }
+      await this.cache.invalidate('sinhvien', maSV);
       return {
         message: 'Cập nhật sinh viên thành công',
         data: result.recordset[0],
@@ -136,6 +147,7 @@ export class AppService {
       if (!result.recordset[0]) {
         throw new NotFoundException(`Không tìm thấy sinh viên ${maSV}`);
       }
+      await this.cache.invalidate('sinhvien', maSV);
       return { message: 'Xóa sinh viên thành công', data: result.recordset[0] };
     } catch (error) {
       if (sqlErrorNumber(error) === 547) {

@@ -6,6 +6,7 @@ import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { jwtOptions } from './jwt.config.js';
+import { EmailService } from './email.service.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { jwtOptions } from './jwt.config.js';
   ],
   providers: [
     AuthService,
+    EmailService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

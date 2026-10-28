@@ -5,14 +5,14 @@ import { ConfigService } from '@nestjs/config';
 export class AuthClient {
   constructor(private readonly config: ConfigService) {}
 
-  async createStudentAccount(maSV: string, authorization: string) {
+  async createStudentAccount(maSV: string, initialPassword: string, authorization: string) {
     const base = this.config.get<string>('SERVICE_URL_AUTH') ?? 'http://localhost:3004';
     let response: Response;
     try {
       response = await fetch(`${base.replace(/\/$/, '')}/auth/accounts/student`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: authorization },
-        body: JSON.stringify({ maSV }),
+        body: JSON.stringify({ maSV, initialPassword }),
         signal: AbortSignal.timeout(3500),
         redirect: 'error',
       });

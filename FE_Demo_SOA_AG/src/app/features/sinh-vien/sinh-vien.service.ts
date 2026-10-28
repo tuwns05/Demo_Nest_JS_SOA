@@ -15,8 +15,9 @@ export interface CreateSinhVien {
   hoTen: string;
   email: string;
   lop: string;
+  initialPassword?: string;
 }
-export type UpdateSinhVien = Partial<Omit<CreateSinhVien, 'maSV'>>;
+export type UpdateSinhVien = Partial<Pick<CreateSinhVien, 'hoTen' | 'email' | 'lop'>>;
 
 @Injectable({ providedIn: 'root' })
 export class SinhVienService {

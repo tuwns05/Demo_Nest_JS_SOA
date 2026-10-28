@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsString,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateSinhVienDto {
@@ -27,5 +28,10 @@ export class CreateSinhVienDto {
   @IsNotEmpty()
   @MaxLength(100)
   lop: string;
+
+  @IsString()
+  @MinLength(12)
+  @MaxLength(128)
+  initialPassword: string;
 
 }

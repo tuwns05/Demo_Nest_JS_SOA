@@ -17,9 +17,47 @@ export class AuthComponent {
   private readonly route = inject(ActivatedRoute);
   user = '';
   password = '';
+  registerEmail = '';
+  registerPassword = '';
+  registerCode = '';
+  readonly registering = signal(false);
+  readonly codeSent = signal(false);
+  readonly message = signal('');
   readonly busy = signal(false);
   readonly error = signal('');
   readonly expired = this.route.snapshot.queryParamMap.has('expired');
+
+  requestRegistrationCode(): void {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.message.set('');
+    this.auth.requestAdminRegistration(this.registerEmail.trim())
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: response => { this.codeSent.set(true); this.message.set(response.message); },
+        error: error => this.error.set(apiError(error)),
+      });
+  }
+
+  completeRegistration(): void {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.auth.completeAdminRegistration(this.registerEmail.trim(), this.registerCode.trim(), this.registerPassword)
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: response => {
+          this.user = this.registerEmail.trim();
+          this.registerPassword = '';
+          this.registerCode = '';
+          this.codeSent.set(false);
+          this.registering.set(false);
+          this.message.set(response.message);
+        },
+        error: error => this.error.set(apiError(error)),
+      });
+  }
 
   loginWithGoogle(credential: string): void {
     if (this.busy()) return;

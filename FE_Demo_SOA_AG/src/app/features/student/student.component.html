@@ -22,6 +22,25 @@
     </dl>
   }
 </section>
+<section class="panel student-profile" aria-labelledby="google-link-title">
+  <div class="section-heading">
+    <div>
+      <h2 id="google-link-title">Liên kết Google</h2>
+      <p class="muted">Nhận mã tại {{ profile()?.Email || 'email trong hồ sơ' }}, sau đó chọn tài khoản Google có cùng email.</p>
+    </div>
+    <button class="button subtle" type="button" (click)="requestGoogleLinkCode()"
+      [disabled]="linkBusy() || !profile()">Gửi mã xác thực</button>
+  </div>
+  @if (linkMessage()) { <p class="alert success" role="status">{{ linkMessage() }}</p> }
+  @if (linkError()) { <p class="alert error" role="alert">{{ linkError() }}</p> }
+  @if (linkCodeSent()) {
+    <label for="student-google-code">Mã xác thực trong email</label>
+    <input id="student-google-code" name="studentGoogleCode" [(ngModel)]="linkCode"
+      maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+    <p class="muted">Nhập mã rồi chọn tài khoản Google:</p>
+    <app-google-button (credential)="linkGoogle($event)" (failure)="linkError.set($event)" />
+  }
+</section>
 <section class="student-section" aria-labelledby="topics-title">
   <div class="section-heading">
     <div><h2 id="topics-title">Đề tài có thể đăng ký</h2><p class="muted">Chọn đề tài phù hợp để gửi đăng ký chờ duyệt.</p></div>

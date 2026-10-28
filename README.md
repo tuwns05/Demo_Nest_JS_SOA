@@ -65,4 +65,4 @@ Sau khi khởi động, giao diện nằm tại `http://localhost:4200` và gate
 
 Thông tin chi tiết về endpoint và dữ liệu nằm trong [Tài liệu API](docs/API.md). Có thể thử các yêu cầu bằng [api-test.http](docs/api-test.http).
 
-Đăng nhập Google là tùy chọn bổ sung cho tài khoản và mật khẩu hiện tại. Xem [hướng dẫn cấu hình Google login](docs/GOOGLE-LOGIN.md) và chạy `db/separate/05-google-login.sql` trên database `SOA_AUTH` trước khi sử dụng.
+Admin có thể đăng ký bằng email và mã xác thực; sinh viên liên kết Google bằng mã gửi tới email trong hồ sơ. Xem [hướng dẫn email](docs/EMAIL-VERIFICATION.md) và [hướng dẫn Google login](docs/GOOGLE-LOGIN.md); chạy `db/separate/05-google-login.sql` và `db/separate/06-email-verification.sql` trên `SOA_AUTH` trước khi sử dụng.

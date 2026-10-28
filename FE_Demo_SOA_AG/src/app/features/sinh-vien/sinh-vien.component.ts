@@ -120,6 +120,10 @@ export class SinhVienComponent implements OnInit {
       this.error.set('Vui lòng nhập đầy đủ thông tin, không chỉ khoảng trắng.');
       return;
     }
+    if (mode === 'create' && (body.initialPassword?.length ?? 0) < 12) {
+      this.error.set('Mật khẩu ban đầu cần ít nhất 12 ký tự.');
+      return;
+    }
     const update: UpdateSinhVien = { hoTen: body.hoTen, email: body.email, lop: body.lop };
     const operation =
       mode === 'create' ? this.store.create(body) : this.store.update(body.maSV, update);
@@ -172,6 +176,6 @@ export class SinhVienComponent implements OnInit {
       .toUpperCase();
   }
   private emptyForm(): CreateSinhVien {
-    return { maSV: '', hoTen: '', email: '', lop: '' };
+    return { maSV: '', hoTen: '', email: '', lop: '', initialPassword: '' };
   }
 }

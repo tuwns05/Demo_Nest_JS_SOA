@@ -142,6 +142,7 @@ describe('Sinhvien authentication (HTTP)', () => {
         hoTen: 'Nguyễn Văn A',
         email: 'a@example.com',
         lop: 'CNTT01',
+        initialPassword: 'StudentSecret123!',
       })
       .expect(201);
     expect(service.create).toHaveBeenCalledOnce();
@@ -159,6 +160,7 @@ describe('Sinhvien authentication (HTTP)', () => {
         hoTen: 'Nguyễn Văn A',
         email: 'a@example.com',
         lop: 'CNTT01',
+        initialPassword: 'StudentSecret123!',
       })
       .expect(201);
     await request(app.getHttpServer())
@@ -182,7 +184,7 @@ describe('Sinhvien authentication (HTTP)', () => {
       .delete('/sinhvien/SV001')
       .set('Authorization', authorization)
       .expect(200);
-    expect(service.remove).toHaveBeenCalledWith('SV001');
+    expect(service.remove).toHaveBeenCalledWith('SV001', authorization);
   });
 
   it.each([

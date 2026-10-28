@@ -3,6 +3,9 @@ import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../auth/auth.service';
+import { GoogleButtonComponent } from '../auth/google-button.component';
 import { API_BASE, MutationResponse, apiError } from '../../core/api';
 import { SinhVien } from '../sinh-vien/sinh-vien.service';
 import { DeTai } from '../de-tai/de-tai.service';
@@ -10,12 +13,13 @@ import { DangKy } from '../dang-ky/dang-ky.service';
 
 @Component({
   selector: 'app-student',
-  imports: [DatePipe],
+  imports: [DatePipe, FormsModule, GoogleButtonComponent],
   templateUrl: './student.component.html',
   styleUrl: './student.component.css',
 })
 export class StudentComponent implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   readonly profile = signal<SinhVien | null>(null);
   readonly topics = signal<DeTai[]>([]);
@@ -28,6 +32,11 @@ export class StudentComponent implements OnInit {
   readonly registrationsError = signal('');
   readonly submitError = signal('');
   readonly message = signal('');
+  readonly linkMessage = signal('');
+  readonly linkError = signal('');
+  readonly linkBusy = signal(false);
+  readonly linkCodeSent = signal(false);
+  linkCode = '';
   readonly submitting = signal<number | null>(null);
   readonly registeredIds = computed(() => new Set(this.registrations().map(item => Number(item.MaDT))));
 
@@ -35,6 +44,39 @@ export class StudentComponent implements OnInit {
     this.loadProfile();
     this.loadTopics();
     this.loadRegistrations();
+  }
+
+  requestGoogleLinkCode(): void {
+    if (this.linkBusy()) return;
+    this.linkBusy.set(true);
+    this.linkError.set('');
+    this.linkMessage.set('');
+    this.auth.requestGoogleLinkCode()
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.linkBusy.set(false)))
+      .subscribe({
+        next: response => { this.linkCodeSent.set(true); this.linkMessage.set(response.message); },
+        error: error => this.linkError.set(apiError(error)),
+      });
+  }
+
+  linkGoogle(credential: string): void {
+    if (this.linkBusy()) return;
+    if (!/^[0-9]{6}$/.test(this.linkCode.trim())) {
+      this.linkError.set('Nhập mã xác thực gồm 6 chữ số.');
+      return;
+    }
+    this.linkBusy.set(true);
+    this.linkError.set('');
+    this.auth.linkGoogle(credential, this.linkCode.trim())
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.linkBusy.set(false)))
+      .subscribe({
+        next: response => {
+          this.linkMessage.set(response.message);
+          this.linkCode = '';
+          this.linkCodeSent.set(false);
+        },
+        error: error => this.linkError.set(apiError(error)),
+      });
   }
 
   loadProfile(): void {

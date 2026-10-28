@@ -11,7 +11,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     delete request.headers['x-user-id'];
-    if ((request.method === 'POST' && ['/auth/login', '/auth/google'].includes(request.path)) ||
+    if ((request.method === 'POST' && ['/auth/login', '/auth/google', '/auth/register/admin/request-code', '/auth/register/admin/complete'].includes(request.path)) ||
         (request.method === 'GET' && ['/health', '/auth/google/config'].includes(request.path))) return true;
     const match = /^Bearer ([^\s]+)$/i.exec(request.headers.authorization ?? '');
     if (!match) throw new UnauthorizedException('Thiếu Bearer token hợp lệ');

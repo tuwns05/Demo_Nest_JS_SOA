@@ -37,7 +37,7 @@ export class AppService {
       throw new ConflictException(`Sinh viên ${dto.maSV} đã tồn tại`);
     }
 
-    await this.authClient.createStudentAccount(dto.maSV, authorization);
+    await this.authClient.createStudentAccount(dto.maSV, dto.initialPassword, authorization);
 
     try {
       await this.databaseService.query(

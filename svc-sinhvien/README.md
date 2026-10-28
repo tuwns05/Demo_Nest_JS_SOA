@@ -13,9 +13,9 @@ Dịch vụ sinh viên cung cấp CRUD. Các đường dẫn dưới đây dùng
 
 Giữ tương thích `POST /sinhvien/create` và các đường dẫn cũ dưới `/sinhvien/sinh-vien`, bao gồm `/create` và `/health`.
 
-Body tạo gồm `maSV`, `hoTen`, `email`, `lop`. Body cập nhật cho phép `hoTen`, `email`, `lop`; không đổi `maSV`, không chấp nhận body rỗng, giá trị null hoặc trường lạ. Danh sách trả mảng; chi tiết trả đối tượng; tạo/cập nhật/xóa trả `{ message, data }`.
+Body tạo gồm `maSV`, `hoTen`, `email`, `lop`, `initialPassword` (ít nhất 12 ký tự). Body cập nhật cho phép `hoTen`, `email`, `lop`; không đổi `maSV`, không chấp nhận body rỗng, giá trị null hoặc trường lạ. Danh sách trả mảng; chi tiết trả đối tượng; tạo/cập nhật/xóa trả `{ message, data }`, không trả mật khẩu.
 
-Khi tạo mới, service gọi `POST /auth/accounts/student` với `{ maSV }`, chuyển tiếp JWT của request. Auth tạo `UserName = maSV`, băm bcrypt mật khẩu ban đầu bằng maSV và gán riêng `Role = student`. Không lưu mật khẩu mới trong bảng SINHVIEN. API Auth yêu cầu JWT; chưa phân quyền theo role.
+Khi tạo mới, admin nhập mật khẩu ban đầu ít nhất 12 ký tự và chuyển riêng cho sinh viên. Service gọi `POST /auth/accounts/student` với `{ maSV, initialPassword }`, chuyển tiếp JWT của request. Auth tạo `UserName = maSV`, lưu hash bcrypt của mật khẩu và gán `Role = student`. Sinh viên đăng nhập bằng mã sinh viên và mật khẩu ban đầu, rồi liên kết Google ở trang cá nhân. Không lưu mật khẩu trong bảng SINHVIEN. API Auth yêu cầu JWT vai trò admin.
 
 Chạy `db/add-user-role.sql` trong SSMS trước khi dùng. Với bảng SINHVIEN cũ có MatKhau NOT NULL, chạy thêm `db/student-password-nullable.sql`.
 

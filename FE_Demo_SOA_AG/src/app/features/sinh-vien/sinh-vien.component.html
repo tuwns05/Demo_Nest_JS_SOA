@@ -255,7 +255,13 @@
               />
             </div>
             @if (mode() === 'create') {
-              <p class="muted span-two">Tài khoản được tạo tự động. Tên đăng nhập và mật khẩu ban đầu là mã sinh viên.</p>
+              <div class="span-two">
+                <label for="initialPassword">Mật khẩu ban đầu <span>*</span></label>
+                <input id="initialPassword" name="initialPassword" type="password"
+                  [(ngModel)]="form.initialPassword" required minlength="12" maxlength="128"
+                  autocomplete="new-password" placeholder="Ít nhất 12 ký tự" />
+                <p class="muted">Hãy gửi mật khẩu này riêng cho sinh viên. Sinh viên đăng nhập bằng mã sinh viên rồi liên kết Google ở trang cá nhân.</p>
+              </div>
             }
           </div>
           @if (studentForm.invalid && studentForm.touched) {

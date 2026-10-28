@@ -15,14 +15,35 @@
   </section>
   <section class="login-form-wrap">
     <div class="login-form">
-      <h2>Đăng nhập</h2>
-      <p class="muted">Dùng tài khoản quản trị hoặc mã sinh viên để vào hệ thống.</p>
+      <h2>{{ registering() ? 'Đăng ký quản trị viên' : 'Đăng nhập' }}</h2>
+      <p class="muted">{{ registering() ? 'Xác thực email để tạo tài khoản quản trị.' : 'Dùng tài khoản quản trị hoặc mã sinh viên để vào hệ thống.' }}</p>
+      @if (message()) { <p class="notice" role="status">{{ message() }}</p> }
       @if (expired) {
         <p class="notice" role="status">Phiên đã hết hạn. Vui lòng đăng nhập lại.</p>
       }
       @if (error()) {
         <p class="alert error" role="alert">{{ error() }}</p>
       }
+      @if (registering()) {
+        <form #registerForm="ngForm" (ngSubmit)="codeSent() ? completeRegistration() : requestRegistrationCode()">
+          <label for="register-email">Email</label>
+          <input id="register-email" name="registerEmail" type="email" email required maxlength="100"
+            [(ngModel)]="registerEmail" autocomplete="email" [readOnly]="codeSent()" />
+          @if (codeSent()) {
+            <label for="register-code">Mã xác thực trong email</label>
+            <input id="register-code" name="registerCode" required minlength="6" maxlength="6"
+              inputmode="numeric" pattern="[0-9]{6}" [(ngModel)]="registerCode" autocomplete="one-time-code" />
+            <label for="register-password">Mật khẩu (ít nhất 8 ký tự)</label>
+            <input id="register-password" name="registerPassword" type="password" required minlength="8" maxlength="128"
+              [(ngModel)]="registerPassword" autocomplete="new-password" />
+          }
+          <button class="button primary full" type="submit" [disabled]="registerForm.invalid || busy()">
+            {{ codeSent() ? 'Xác thực và tạo tài khoản' : 'Gửi mã xác thực' }}
+          </button>
+        </form>
+        @if (codeSent()) { <button class="button subtle" type="button" (click)="requestRegistrationCode()" [disabled]="busy()">Gửi lại mã</button> }
+        <button class="button subtle" type="button" (click)="registering.set(false); codeSent.set(false); registerCode = ''; registerPassword = ''">Quay lại đăng nhập</button>
+      } @else {
       <form #loginForm="ngForm" (ngSubmit)="login()">
         <label for="user">Tài khoản</label>
         <input
@@ -52,7 +73,8 @@
         <p class="muted">Hoặc đăng nhập bằng Google đã liên kết:</p>
         <app-google-button (credential)="loginWithGoogle($event)" (failure)="error.set($event)" />
       </div>
-      <p class="login-note">Chưa có tài khoản? Liên hệ quản lý.</p>
+      <p class="login-note">Chưa có tài khoản quản trị? <button class="button subtle" type="button" (click)="registering.set(true); codeSent.set(false); error.set(''); message.set('')">Đăng ký bằng email</button></p>
+      }
     </div>
   </section>
 </div>

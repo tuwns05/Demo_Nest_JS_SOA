@@ -27,8 +27,21 @@ export class AuthService {
       .pipe(tap((response) => this.session.start(response.access_token, response.username ?? '')));
   }
 
-  linkGoogle(credential: string) {
-    return this.http.post<{ message: string }>(API_BASE + '/auth/google/link', { credential });
+  requestAdminRegistration(email: string) {
+    return this.http.post<{ message: string }>(API_BASE + '/auth/register/admin/request-code', { email });
+  }
+
+  completeAdminRegistration(email: string, code: string, password: string) {
+    return this.http.post<{ message: string }>(API_BASE + '/auth/register/admin/complete', { email, code, password });
+  }
+
+  requestGoogleLinkCode() {
+    return this.http.post<{ message: string }>(API_BASE + '/auth/google/link/request-code', {});
+  }
+
+
+  linkGoogle(credential: string, code: string) {
+    return this.http.post<{ message: string }>(API_BASE + '/auth/google/link', { credential, code });
   }
 
   logout(): void {

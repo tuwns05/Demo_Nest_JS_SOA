@@ -9,7 +9,8 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const isApi = request.url.startsWith(API_BASE + '/');
   const isLogin = request.url === API_BASE + '/auth/login' ||
     request.url === API_BASE + '/auth/google' ||
-    request.url === API_BASE + '/auth/google/config';
+    request.url === API_BASE + '/auth/google/config' ||
+    request.url.startsWith(API_BASE + '/auth/register/admin/');
   const token = session.token();
   const outgoing =
     isApi && !isLogin && token

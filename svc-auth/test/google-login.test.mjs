@@ -13,7 +13,8 @@ function token(changes = {}) {
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'test-key' })).toString('base64url');
   const body = Buffer.from(JSON.stringify({ iss: 'https://accounts.google.com', aud: clientId,
-    sub: 'google-user-1', iat: now, exp: now + 3600, ...changes })).toString('base64url');
+    sub: 'google-user-1', email: 'student@example.com', email_verified: true,
+    iat: now, exp: now + 3600, ...changes })).toString('base64url');
   const content = `${header}.${body}`;
   return `${content}.${sign('RSA-SHA256', Buffer.from(content), privateKey).toString('base64url')}`;
 }
@@ -34,18 +35,66 @@ test('Google token verification checks signature, audience, issuer and expiry', 
     globalThis.fetch = originalFetch;
   }
 });
-
 test('Google login uses linked local user and preserves local role', async () => {
   const queries = [];
+  globalThis.fetch = async url => {
+    if (String(url).includes('/sinh-vien/SV007')) return new Response(JSON.stringify({ Email: 'student@example.com' }));
+    return new Response(JSON.stringify({ keys: [jwk] }), { headers: { 'cache-control': 'max-age=60' } });
+  };
+  try {
   const service = new AuthService({ query: async (sql, params) => {
     queries.push({ sql, params });
     return { recordset: [{ IdUser: 7, UserName: 'SV007', Role: 'student' }] };
   } }, { signAsync: async payload => {
+    if (payload.sub === 'svc-auth') return 'internal-jwt';
     assert.deepEqual(payload, { sub: '7', username: 'SV007', role: 'student', maSV: 'SV007' });
     return 'local-jwt';
-  } }, { getOrThrow: key => key === 'GOOGLE_CLIENT_ID' ? clientId : '15m', get: () => clientId });
+  } }, { getOrThrow: key => key === 'GOOGLE_CLIENT_ID' ? clientId : '15m', get: () => 'http://localhost:3001' });
   assert.deepEqual(await service.signInWithGoogle(token()), {
     access_token: 'local-jwt', expires_in: '15m', token_type: 'Bearer', username: 'SV007',
   });
   assert.equal(queries[0].params.subject, 'google-user-1');
+  await assert.rejects(service.signInWithGoogle(token({ email: 'wrong@example.com' })), { status: 401 });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('student Google link requires a code sent to the saved student email', async () => {
+  const sent = [];
+  const inserts = [];
+  let savedHash;
+  let used = false;
+  globalThis.fetch = async url => {
+    if (String(url).includes('/sinh-vien/me')) return new Response(JSON.stringify({ Email: 'student@example.com' }));
+    return new Response(JSON.stringify({ keys: [jwk] }), { headers: { 'cache-control': 'max-age=60' } });
+  };
+  try {
+    const service = new AuthService({ query: async (sql, p) => {
+      if (sql.includes('SELECT LastSentAt')) return { recordset: [] };
+      if (sql.includes('INSERT INTO dbo.EmailVerification')) { savedHash = p.hash; return { recordset: [] }; }
+      if (sql.includes('OUTPUT INSERTED.ConsumedAt')) {
+        if (used) return { recordset: [] };
+        if (p.hash === savedHash) used = true;
+        return { recordset: [{ ConsumedAt: used ? new Date() : null }] };
+      }
+      if (sql.includes('INSERT INTO dbo.UserExternalIdentity')) {
+        inserts.push(p);
+        return { rowsAffected: [1], recordset: [] };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    } }, {}, {
+      getOrThrow: key => key === 'GOOGLE_CLIENT_ID' ? clientId : 'test-secret',
+      get: () => 'http://localhost:3001',
+    }, { sendCode: async (email, code) => sent.push({ email, code }) });
+
+    await service.requestGoogleLink('7', 'Bearer student-jwt');
+    assert.equal(sent[0].email, 'student@example.com');
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token({ email: 'other@example.com' }), sent[0].code), { status: 401 });
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token({ email_verified: false }), sent[0].code), { status: 401 });
+    assert.equal(inserts.length, 0);
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token(), '000000' === sent[0].code ? '111111' : '000000'), { status: 401 });
+    assert.equal(inserts.length, 0);
+    await service.linkGoogle('7', 'Bearer student-jwt', token(), sent[0].code);
+    assert.deepEqual(inserts[0], { subject: 'google-user-1', userId: 7 });
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token(), sent[0].code), { status: 401 });
+  } finally { globalThis.fetch = originalFetch; }
 });

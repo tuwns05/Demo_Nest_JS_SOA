@@ -30,7 +30,7 @@ async function getKeys(): Promise<GoogleKey[]> {
   }
 }
 
-export async function verifyGoogleToken(token: string, clientId: string): Promise<string> {
+export async function verifyGoogleIdentity(token: string, clientId: string): Promise<{ subject: string; email: string | null }> {
   const invalid = () => new UnauthorizedException('Thông tin đăng nhập Google không hợp lệ');
   if (token.length > 8192) throw invalid();
   const parts = token.split('.');
@@ -39,6 +39,7 @@ export async function verifyGoogleToken(token: string, clientId: string): Promis
     const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')) as { alg?: string; kid?: string };
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as {
       iss?: string; aud?: string; sub?: string; exp?: number; iat?: number; nbf?: number;
+      email?: string; email_verified?: boolean;
     };
     const now = Math.floor(Date.now() / 1000);
     if (header.alg !== 'RS256' || !header.kid ||
@@ -52,9 +53,17 @@ export async function verifyGoogleToken(token: string, clientId: string): Promis
     const key = (await getKeys()).find(item => item.kid === header.kid && item.kty === 'RSA' && item.use === 'sig' && item.alg === 'RS256');
     if (!key || !verify('RSA-SHA256', Buffer.from(`${parts[0]}.${parts[1]}`),
       createPublicKey({ key, format: 'jwk' }), Buffer.from(parts[2], 'base64url'))) throw invalid();
-    return payload.sub;
+    return {
+      subject: payload.sub,
+      email: payload.email_verified === true && typeof payload.email === 'string'
+        ? payload.email.trim().toLowerCase() : null,
+    };
   } catch (error) {
     if (error instanceof ServiceUnavailableException || error instanceof UnauthorizedException) throw error;
     throw invalid();
   }
+}
+
+export async function verifyGoogleToken(token: string, clientId: string): Promise<string> {
+  return (await verifyGoogleIdentity(token, clientId)).subject;
 }

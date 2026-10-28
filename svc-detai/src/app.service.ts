@@ -1,4 +1,3 @@
-import { CacheService } from '@soa/cache';
 import {
   BadRequestException,
   Injectable,
@@ -9,13 +8,9 @@ import { CreateDeTaiDto, UpdateDeTaiDto } from './dto/detai.dto.js';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly databaseService: DatabaseService, private readonly cache: CacheService) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async findAll() {
-    return this.cache.remember('detai', 'all', 'list', () => this.loadAll());
-  }
-
-  private async loadAll() {
     const result = await this.databaseService.query(
       'SELECT MaDT, TenDT, MoTa, GiangVienHD FROM dbo.DETAI ORDER BY MaDT DESC',
     );
@@ -23,10 +18,6 @@ export class AppService {
   }
 
   async findOne(maDT: number) {
-    return this.cache.remember('detai', String(maDT), 'detail', () => this.loadOne(maDT));
-  }
-
-  private async loadOne(maDT: number) {
     const result = await this.databaseService.query(
       'SELECT MaDT, TenDT, MoTa, GiangVienHD FROM dbo.DETAI WHERE MaDT = @maDT',
       { maDT },
@@ -45,7 +36,6 @@ export class AppService {
         giangVienHD: dto.giangVienHD ?? null,
       },
     );
-    await this.cache.invalidate('detai', String(result.recordset[0].MaDT));
     return { message: 'Tạo đề tài thành công', data: result.recordset[0] };
   }
 
@@ -67,7 +57,6 @@ export class AppService {
     );
     if (!result.recordset[0])
       throw new NotFoundException('Không tìm thấy đề tài');
-    await this.cache.invalidate('detai', maDT);
     return { message: 'Cập nhật đề tài thành công', data: result.recordset[0] };
   }
 
@@ -78,7 +67,6 @@ export class AppService {
     );
     if (!result.recordset[0])
       throw new NotFoundException('Không tìm thấy đề tài');
-    await this.cache.invalidate('detai', maDT);
     return { message: 'Xóa đề tài thành công', data: result.recordset[0] };
   }
 

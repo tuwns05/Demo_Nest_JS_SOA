@@ -1,4 +1,3 @@
-import { CacheService } from '@soa/cache';
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
@@ -45,8 +44,6 @@ describe('Sinhvien authentication (HTTP)', () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(ConfigService)
       .useValue({ getOrThrow: () => secret })
-      .overrideProvider(CacheService)
-      .useValue({})
       .overrideProvider(DatabaseService)
       .useValue({})
       .overrideProvider(AppService)

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -41,8 +42,8 @@ export class AppController {
   }
 
   @Delete(':maDT')
-  remove(@Param('maDT', ParseIntPipe) maDT: number) {
-    return this.appService.remove(maDT);
+  remove(@Param('maDT', ParseIntPipe) maDT: number, @Headers('authorization') authorization: string) {
+    return this.appService.remove(maDT, authorization);
   }
 
   @Get('health')

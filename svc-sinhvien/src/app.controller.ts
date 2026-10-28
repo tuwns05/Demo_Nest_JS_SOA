@@ -70,7 +70,7 @@ export class AppController {
   }
 
   @Delete(':maSV')
-  remove(@Param('maSV') maSV: string) {
-    return this.appService.remove(maSV);
+  remove(@Param('maSV') maSV: string, @Headers('authorization') authorization: string) {
+    return this.appService.remove(maSV, authorization);
   }
 }

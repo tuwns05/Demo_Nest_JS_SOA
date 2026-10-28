@@ -30,6 +30,16 @@ export class AppController {
     return this.appService.findMine(request.user!.maSV!);
   }
 
+  @Get('exists/student/:maSV')
+  async hasRegistrationsForStudent(@Param('maSV') maSV: string) {
+    return { exists: await this.appService.hasRegistrationsForStudent(maSV) };
+  }
+
+  @Get('exists/topic/:maDT')
+  async hasRegistrationsForTopic(@Param('maDT', ParseIntPipe) maDT: number) {
+    return { exists: await this.appService.hasRegistrationsForTopic(maDT) };
+  }
+
   @Post('me')
   @Roles('student')
   createMine(

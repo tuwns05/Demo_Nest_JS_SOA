@@ -42,6 +42,22 @@ export class AppService {
     return result.recordset;
   }
 
+  async hasRegistrationsForStudent(maSV: string): Promise<boolean> {
+    const result = await this.databaseService.query(
+      'SELECT TOP (1) MaDK FROM dbo.DANGKY WHERE MaSV = @maSV',
+      { maSV },
+    );
+    return result.recordset.length > 0;
+  }
+
+  async hasRegistrationsForTopic(maDT: number): Promise<boolean> {
+    const result = await this.databaseService.query(
+      'SELECT TOP (1) MaDK FROM dbo.DANGKY WHERE MaDT = @maDT',
+      { maDT },
+    );
+    return result.recordset.length > 0;
+  }
+
   private async checkReferences(
     maSV: string,
     maDT: number,

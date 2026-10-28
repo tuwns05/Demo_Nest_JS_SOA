@@ -1,14 +1,19 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '@soa/database';
 import { CreateDeTaiDto, UpdateDeTaiDto } from './dto/detai.dto.js';
+import { RegistrationClient } from './registration.client.js';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly registrationClient: RegistrationClient,
+  ) {}
 
   async findAll() {
     const result = await this.databaseService.query(
@@ -60,7 +65,10 @@ export class AppService {
     return { message: 'Cập nhật đề tài thành công', data: result.recordset[0] };
   }
 
-  async remove(maDT: number) {
+  async remove(maDT: number, authorization: string) {
+    if (await this.registrationClient.hasTopicRegistrations(maDT, authorization)) {
+      throw new ConflictException('Không thể xóa đề tài đang có đăng ký');
+    }
     const result = await this.databaseService.query(
       'DELETE FROM dbo.DETAI OUTPUT deleted.MaDT WHERE MaDT = @maDT',
       { maDT },

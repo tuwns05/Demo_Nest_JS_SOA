@@ -8,6 +8,7 @@ import { DatabaseService } from '@soa/database';
 import { CreateSinhVienDto } from './dto/create-sinhvien.dto.js';
 import { UpdateSinhVienDto } from './dto/update-sinhvien.dto.js';
 import { AuthClient } from './auth.client.js';
+import { RegistrationClient } from './registration.client.js';
 
 function sqlErrorNumber(error: unknown): number | undefined {
   const sqlError = error as {
@@ -19,7 +20,11 @@ function sqlErrorNumber(error: unknown): number | undefined {
 
 @Injectable()
 export class AppService {
-  constructor(private readonly databaseService: DatabaseService, private readonly authClient: AuthClient) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly authClient: AuthClient,
+    private readonly registrationClient: RegistrationClient,
+  ) {}
 
   //CREATE SINHVIEN
   async create(dto: CreateSinhVienDto, authorization: string) {
@@ -125,7 +130,10 @@ export class AppService {
     }
   }
 
-  async remove(maSV: string) {
+  async remove(maSV: string, authorization: string) {
+    if (await this.registrationClient.hasStudentRegistrations(maSV, authorization)) {
+      throw new ConflictException('Không thể xóa sinh viên đang có đăng ký đề tài');
+    }
     try {
       const result = await this.databaseService.query(
         `DELETE FROM SINHVIEN

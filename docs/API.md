@@ -2,7 +2,7 @@
 
 Phân quyền admin/student và các endpoint cá nhân được mô tả tại [Phân quyền sinh viên](PHAN-QUYEN-SINH-VIEN.md). API quản trị yêu cầu admin; student dùng /sinhvien/me, /dangky/me và API đọc đề tài. JWT cũ cần đăng nhập lại.
 
-Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công khai. Route khác cần `Authorization: Bearer <token>`.
+Gateway: `http://localhost:3000`. Đăng nhập qua `POST /auth/login` hoặc `POST /auth/google`; `GET /auth/google/config` và `GET /health` công khai. Route khác cần `Authorization: Bearer <token>`.
 
 | Method | Route | Phản hồi hiện có |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ Gateway: `http://localhost:3000`. Chỉ POST /auth/login và GET /health công k
 | GET | /sinhvien | 200 mảng sinh viên, không có mật khẩu |
 | GET | /sinhvien/:maSV | 200 thông tin sinh viên; 404 nếu không tồn tại |
 | PATCH | /sinhvien/:maSV | Cập nhật hoTen/email/lop; 200 message và data; 400 nếu body rỗng/sai |
-| DELETE | /sinhvien/:maSV | 200 message và data; 404 không tồn tại; 409 nếu có khóa ngoại tham chiếu |
+| DELETE | /sinhvien/:maSV | 200 message và data; 404 không tồn tại; 409 nếu có đăng ký; 503 nếu không kiểm tra được đăng ký |
 | GET | /detai/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /dangky/health | Kiểm tra DB; 200 hoặc 503 |
 | GET | /detai | 200 mảng đề tài |
@@ -34,4 +34,10 @@ Swagger trực tiếp ở /api từng service, chưa có Swagger tổng hợp. R
 
 Các API CRUD đều cần JWT, kể cả truy cập trực tiếp service. Body sai, trường thừa hoặc PATCH rỗng trả 400. Dữ liệu trả về dùng tên cột SQL (MaDT, TenDT, MaDK, MaSV...). Ngày đăng ký định dạng YYYY-MM-DD; bỏ ngày khi tạo dùng GETDATE(). Tạo/sửa đăng ký gọi svc-sinhvien và svc-detai kèm token để kiểm tra mã; mã không tồn tại trả 404, dịch vụ không kết nối được trả 503.
 
-Chưa có phân trang, chặn đăng ký trùng hoặc tự xóa liên quan giữa database. Xóa đăng ký trước khi xóa sinh viên/đề tài để tránh dữ liệu mồ côi. Giữ API tạo sinh viên cũ `/sinhvien/sinh-vien/create`.
+Chưa có phân trang hoặc ràng buộc database chống đăng ký trùng khi có yêu cầu đồng thời. Xóa đăng ký trước khi xóa sinh viên/đề tài. Giữ API tạo sinh viên cũ `/sinhvien/sinh-vien/create`.
+
+# Kiểm tra đăng ký trước khi xóa sinh viên hoặc đề tài
+
+`svc-dangky` cung cấp `GET /dangky/exists/student/:maSV` và `GET /dangky/exists/topic/:maDT` cho tài khoản quản trị. Mỗi API trả `{ "exists": true|false }` và chỉ kiểm tra một dòng trong database. `svc-sinhvien` và `svc-detai` dùng các API này trước khi xóa; nếu có đăng ký, lệnh xóa trả `409`. Nếu không kiểm tra được (lỗi mạng hoặc `svc-dangky` không sẵn sàng), lệnh xóa dừng và trả lỗi. Cấu hình `SERVICE_URL_DANGKY` trên hai service; mặc định trong `.env.example` là `http://localhost:3003`.
+
+Kiểm tra trước khi xóa không phải giao dịch xuyên service. Nếu đăng ký mới được tạo đồng thời giữa bước kiểm tra và bước xóa, vẫn có thể phát sinh dữ liệu tham chiếu không còn tồn tại.

@@ -78,6 +78,17 @@ describe('Registration CRUD', () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining('WHERE MaSV = @maSV'), { maSV: 'SV001' });
   });
 
+  it('checks registration existence by student and topic with bound parameters', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ MaDK: 1 }] })
+      .mockResolvedValueOnce({ recordset: [] });
+    await expect(service.hasRegistrationsForStudent('SV001')).resolves.toBe(true);
+    await expect(service.hasRegistrationsForTopic(2)).resolves.toBe(false);
+    expect(query).toHaveBeenNthCalledWith(1,
+      expect.stringContaining('WHERE MaSV = @maSV'), { maSV: 'SV001' });
+    expect(query).toHaveBeenNthCalledWith(2,
+      expect.stringContaining('WHERE MaDT = @maDT'), { maDT: 2 });
+  });
+
   it('rejects duplicate registrations before inserting', async () => {
     query.mockResolvedValueOnce({ recordset: [{ MaDK: 1 }] });
     await expect(service.create({ maSV: 'SV001', maDT: 2 }, 'Bearer test')).rejects.toBeInstanceOf(ConflictException);

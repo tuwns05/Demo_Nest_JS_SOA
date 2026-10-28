@@ -7,6 +7,7 @@ import { DatabaseModule } from '@soa/database';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthClient } from './auth.client.js';
+import { RegistrationClient } from './registration.client.js';
 
 @Module({
   imports: [
@@ -27,6 +28,6 @@ import { AuthClient } from './auth.client.js';
     DatabaseModule.register(),
   ],
   controllers: [AppController],
-  providers: [AppService, AuthClient, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [AppService, AuthClient, RegistrationClient, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

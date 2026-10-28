@@ -38,6 +38,8 @@ describe('dangky authentication (HTTP)', () => {
     create: vi.fn().mockResolvedValue({ message: 'created' }),
     update: vi.fn().mockResolvedValue({ message: 'updated' }),
     remove: vi.fn().mockResolvedValue({ message: 'deleted' }),
+    hasRegistrationsForStudent: vi.fn().mockResolvedValue(true),
+    hasRegistrationsForTopic: vi.fn().mockResolvedValue(false),
     getHealth: vi.fn().mockResolvedValue({ status: 'ok', service: 'dangky' }),
   };
 
@@ -106,6 +108,20 @@ describe('dangky authentication (HTTP)', () => {
   it('protects detail access', async () => {
     await request(app.getHttpServer()).get('/dangky/1').expect(401);
     expect(service.findOne).not.toHaveBeenCalled();
+  });
+
+  it('restricts registration existence checks to admins', async () => {
+    const admin = 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
+    const student = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/dangky/exists/student/SV001').expect(401);
+    await request(app.getHttpServer()).get('/dangky/exists/student/SV001')
+      .set('Authorization', student).expect(403);
+    await request(app.getHttpServer()).get('/dangky/exists/student/SV001')
+      .set('Authorization', admin).expect(200, { exists: true });
+    await request(app.getHttpServer()).get('/dangky/exists/topic/2')
+      .set('Authorization', admin).expect(200, { exists: false });
+    expect(service.hasRegistrationsForStudent).toHaveBeenCalledWith('SV001');
+    expect(service.hasRegistrationsForTopic).toHaveBeenCalledWith(2);
   });
 
   it('routes every CRUD operation with a valid JWT', async () => {

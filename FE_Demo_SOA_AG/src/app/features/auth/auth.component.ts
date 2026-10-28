@@ -4,10 +4,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { apiError } from '../../core/api';
 import { AuthService } from './auth.service';
+import { GoogleButtonComponent } from './google-button.component';
 
 @Component({
   selector: 'app-auth',
-  imports: [FormsModule],
+  imports: [FormsModule, GoogleButtonComponent],
   templateUrl: './auth.component.html',
 })
 export class AuthComponent {
@@ -19,6 +20,27 @@ export class AuthComponent {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly expired = this.route.snapshot.queryParamMap.has('expired');
+
+  loginWithGoogle(credential: string): void {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.auth.loginWithGoogle(credential)
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: () => this.navigateAfterLogin(),
+        error: (error) => this.error.set(apiError(error)),
+      });
+  }
+
+  private navigateAfterLogin(): void {
+    const target = this.route.snapshot.queryParamMap.get('returnUrl');
+    void this.router.navigateByUrl(
+      this.auth.session.role() === 'student'
+        ? this.auth.session.home()
+        : target?.startsWith('/') && !target.startsWith('//') ? target : this.auth.session.home(),
+    );
+  }
 
   login(): void {
     if (this.busy()) return;
@@ -34,12 +56,7 @@ export class AuthComponent {
       .subscribe({
         next: () => {
           this.password = '';
-          const target = this.route.snapshot.queryParamMap.get('returnUrl');
-          void this.router.navigateByUrl(
-            this.auth.session.role() === 'student'
-              ? this.auth.session.home()
-              : target?.startsWith('/') && !target.startsWith('//') ? target : this.auth.session.home(),
-          );
+          this.navigateAfterLogin();
         },
         error: (error) => {
           this.password = '';

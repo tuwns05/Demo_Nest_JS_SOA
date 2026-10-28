@@ -8,6 +8,7 @@ Chạy từng file nguyên vẹn trong SQL Server Management Studio (SSMS), trê
 | 02-sinhvien.sql | SOA_SINHVIEN | dbo.SINHVIEN | svc-sinhvien |
 | 03-detai.sql | SOA_DETAI | dbo.DETAI | svc-detai |
 | 04-dangky.sql | SOA_DANGKY | dbo.DANGKY | svc-dangky |
+| 05-google-login.sql | SOA_AUTH | dbo.UserExternalIdentity | svc-auth (đăng nhập Google) |
 
 Ba bảng nghiệp vụ giữ kiểu dữ liệu, độ dài, nullability, identity và default theo DtbDA.sql. Bảng User theo db/schema.sql của backend. Các database và bảng đã tồn tại được giữ nguyên; script không migrate cấu trúc bảng có sẵn.
 

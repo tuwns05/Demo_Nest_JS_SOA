@@ -7,7 +7,9 @@ import { SessionService } from './session.service';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const session = inject(SessionService);
   const isApi = request.url.startsWith(API_BASE + '/');
-  const isLogin = request.url === API_BASE + '/auth/login';
+  const isLogin = request.url === API_BASE + '/auth/login' ||
+    request.url === API_BASE + '/auth/google' ||
+    request.url === API_BASE + '/auth/google/config';
   const token = session.token();
   const outgoing =
     isApi && !isLogin && token

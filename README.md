@@ -64,3 +64,5 @@ Xem [Hướng dẫn triển khai](docs/HUONG-DAN-TRIEN-KHAI.md) để clone mã 
 Sau khi khởi động, giao diện nằm tại `http://localhost:4200` và gateway tại `http://localhost:3000`.
 
 Thông tin chi tiết về endpoint và dữ liệu nằm trong [Tài liệu API](docs/API.md). Có thể thử các yêu cầu bằng [api-test.http](docs/api-test.http).
+
+Đăng nhập Google là tùy chọn bổ sung cho tài khoản và mật khẩu hiện tại. Xem [hướng dẫn cấu hình Google login](docs/GOOGLE-LOGIN.md) và chạy `db/separate/05-google-login.sql` trên database `SOA_AUTH` trước khi sử dụng.

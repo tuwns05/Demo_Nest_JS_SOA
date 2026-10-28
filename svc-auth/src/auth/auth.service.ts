@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '@soa/database';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { verifyGoogleToken } from './google-token.js';
 
 interface UserLoginRecord extends Record<string, unknown> {
   IdUser: number;
@@ -18,6 +19,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
+
+  googleClientId() {
+    return { clientId: this.config.get<string>('GOOGLE_CLIENT_ID') ?? '' };
+  }
 
   async createStudentAccount(maSV: string) {
     const findExisting = async () => {
@@ -67,6 +72,44 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản hoặc mật khẩu không hợp lệ');
     }
 
+    return this.issueToken(user);
+  }
+
+  async signInWithGoogle(credential: string) {
+    const subject = await verifyGoogleToken(credential, this.config.getOrThrow<string>('GOOGLE_CLIENT_ID'));
+    const result = await this.databaseService.query<UserLoginRecord>(
+      `SELECT TOP (1) u.IdUser, u.UserName, u.Role
+       FROM dbo.UserExternalIdentity AS i
+       JOIN dbo.[User] AS u ON u.IdUser = i.IdUser
+       WHERE i.Provider = 'google' AND i.Subject = @subject`,
+      { subject },
+    );
+    const user = result.recordset[0];
+    if (!user) throw new UnauthorizedException('Tài khoản Google chưa được liên kết. Hãy đăng nhập bằng mật khẩu rồi liên kết trong trang Tài khoản.');
+    return { ...await this.issueToken(user), username: user.UserName };
+  }
+
+  async linkGoogle(userId: string, credential: string) {
+    const subject = await verifyGoogleToken(credential, this.config.getOrThrow<string>('GOOGLE_CLIENT_ID'));
+    if (!/^\d+$/.test(userId)) throw new UnauthorizedException();
+    try {
+      const result = await this.databaseService.query(
+        `INSERT INTO dbo.UserExternalIdentity (IdUser, Provider, Subject)
+         SELECT IdUser, 'google', @subject FROM dbo.[User] WHERE IdUser = @userId`,
+        { subject, userId: Number(userId) },
+      );
+      if (result.rowsAffected[0] !== 1) throw new UnauthorizedException('Tài khoản không tồn tại');
+      return { message: 'Đã liên kết tài khoản Google' };
+    } catch (error) {
+      const sql = error as { number?: number; originalError?: { info?: { number?: number } } };
+      if ([2601, 2627].includes(sql?.number ?? sql?.originalError?.info?.number ?? 0)) {
+        throw new ConflictException('Tài khoản này hoặc Google đã được liên kết');
+      }
+      throw error;
+    }
+  }
+
+  private async issueToken(user: Pick<UserLoginRecord, 'IdUser' | 'UserName' | 'Role'>) {
     if (user.Role !== 'admin' && user.Role !== 'student') {
       throw new ForbiddenException('Tài khoản chưa được gán vai trò hợp lệ. Vui lòng liên hệ quản trị viên.');
     }

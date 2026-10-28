@@ -48,6 +48,10 @@
           {{ busy() ? 'Đang đăng nhập…' : 'Đăng nhập →' }}
         </button>
       </form>
+      <div class="google-login">
+        <p class="muted">Hoặc đăng nhập bằng Google đã liên kết:</p>
+        <app-google-button (credential)="loginWithGoogle($event)" (failure)="error.set($event)" />
+      </div>
       <p class="login-note">Chưa có tài khoản? Liên hệ quản lý.</p>
     </div>
   </section>

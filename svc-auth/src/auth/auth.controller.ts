@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   ServiceUnavailableException,
   SetMetadata,
 } from '@nestjs/common';
@@ -13,6 +14,8 @@ import { SignInRequest } from './dto/signIn.request.js';
 import { SignInResponse } from './dto/signIn.reponse.js';
 import { Public } from './decorators/public.decorator.js';
 import { CreateStudentAccountDto } from './dto/create-student-account.dto.js';
+import { GoogleCredentialDto } from './dto/google-credential.dto.js';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -28,6 +31,26 @@ export class AuthController {
   @Post('login')
   signIn(@Body() signInDto: SignInRequest): Promise<SignInResponse> {
     return this.authService.signIn(signInDto.user, signInDto.password);
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('google')
+  signInWithGoogle(@Body() dto: GoogleCredentialDto) {
+    return this.authService.signInWithGoogle(dto.credential);
+  }
+
+  @Public()
+  @Get('google/config')
+  googleConfig() {
+    return this.authService.googleClientId();
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @SetMetadata('allowed_roles', ['admin', 'student'])
+  @Post('google/link')
+  linkGoogle(@Req() request: Request & { user?: { sub?: string } }, @Body() dto: GoogleCredentialDto) {
+    return this.authService.linkGoogle(String(request.user?.sub ?? ''), dto.credential);
   }
 
   @Public()

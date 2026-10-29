@@ -57,6 +57,8 @@ describe('DangKy CRUD screen', () => {
   it('renders backend data, submits creation and updates the list', async () => {
     expect(fixture.nativeElement.textContent).toContain('Quản lý đồ án');
     page.openCreate();
+    backend.expectOne('/api/dangky/occupied-topics').flush([]);
+    backend.expectOne('/api/dangky/registered-students').flush([]);
     backend
       .expectOne('/api/sinhvien')
       .flush([{ MaSV: 'SV001', HoTen: 'Nguyễn Văn A', Email: 'a@example.com', Lop: 'CNTT' }]);
@@ -171,6 +173,8 @@ describe('DangKy CRUD screen', () => {
 
   it('does not submit missing required fields and clears cached data on logout', () => {
     page.openCreate();
+    backend.expectOne('/api/dangky/occupied-topics').flush([]);
+    backend.expectOne('/api/dangky/registered-students').flush([]);
     backend.expectOne('/api/sinhvien').flush([
       { MaSV: 'SV001', HoTen: 'Nguyễn Văn A', Email: 'a@example.com', Lop: 'CNTT' },
     ]);
@@ -183,5 +187,51 @@ describe('DangKy CRUD screen', () => {
     session.end();
     TestBed.tick();
     expect(page.store.items()).toEqual([]);
+  });
+
+  it('offers only unoccupied topics when opening the creation form', () => {
+    page.openCreate();
+    backend.expectOne('/api/sinhvien').flush([
+      { MaSV: 'SV002', HoTen: 'Student B' }, { MaSV: 'SV001', HoTen: 'Already registered' },
+    ]);
+    backend.expectOne('/api/detai').flush([
+      { MaDT: 2, TenDT: 'Taken' }, { MaDT: 3, TenDT: 'Available' },
+    ]);
+    backend.expectOne('/api/dangky/occupied-topics').flush([2]);
+    backend.expectOne('/api/dangky/registered-students').flush(['sv001']);
+    fixture.detectChanges();
+    const options = fixture.nativeElement.querySelector('#maDT').textContent;
+    expect(options).toContain('Available');
+    expect(options).not.toContain('Taken');
+    expect(fixture.nativeElement.querySelector('#maSV').textContent).not.toContain('Already registered');
+    page.form = { maSV: 'SV002', maDT: 3, ngayDangKy: '', trangThai: '' };
+    page.save();
+    backend.expectOne('/api/dangky').flush({ message: 'Đề tài đã có sinh viên đăng ký' },
+      { status: 409, statusText: 'Conflict' });
+    expect(page.busy()).toBe(true);
+    backend.expectOne('/api/dangky/occupied-topics').flush([2, 3]);
+    backend.expectOne('/api/dangky/registered-students').flush(['SV001']);
+    fixture.detectChanges();
+    expect(page.form.maDT).toBeNull();
+    expect(page.availableTopics()).toEqual([]);
+    expect(page.mode()).toBe('create');
+    expect(page.error()).toContain('Đề tài đã có sinh viên đăng ký');
+  });
+
+  it('clears a student registered from another session without hiding a free topic', () => {
+    page.openCreate();
+    backend.expectOne('/api/sinhvien').flush([{ MaSV: 'SV002', HoTen: 'Student B' }]);
+    backend.expectOne('/api/detai').flush([{ MaDT: 3, TenDT: 'Available' }]);
+    backend.expectOne('/api/dangky/occupied-topics').flush([]);
+    backend.expectOne('/api/dangky/registered-students').flush([]);
+    page.form = { maSV: 'SV002', maDT: 3, ngayDangKy: '', trangThai: '' };
+    page.save();
+    backend.expectOne('/api/dangky').flush({ message: 'Sinh viên đã đăng ký đề tài' }, { status: 409, statusText: 'Conflict' });
+    backend.expectOne('/api/dangky/occupied-topics').flush([]);
+    backend.expectOne('/api/dangky/registered-students').flush(['SV002']);
+    expect(page.form.maSV).toBe('');
+    expect(page.form.maDT).toBe(3);
+    expect(page.availableStudents()).toEqual([]);
+    expect(page.busy()).toBe(false);
   });
 });

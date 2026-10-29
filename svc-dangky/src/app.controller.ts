@@ -40,6 +40,18 @@ export class AppController {
     return { exists: await this.appService.hasRegistrationsForTopic(maDT) };
   }
 
+  @Get('occupied-topics')
+  @Roles('admin', 'student')
+  occupiedTopics() {
+    return this.appService.occupiedTopicIds();
+  }
+
+  @Get('registered-students')
+  @Roles('admin')
+  registeredStudents() {
+    return this.appService.registeredStudentIds();
+  }
+
   @Post('me')
   @Roles('student')
   createMine(
@@ -51,6 +63,16 @@ export class AppController {
       maSV: request.user!.maSV!, maDT: dto.maDT, trangThai: 'Chờ duyệt',
     }, authorization);
   }
+
+  @Delete('me/:maDK')
+  @Roles('student')
+  cancelMine(
+    @Param('maDK', ParseIntPipe) maDK: number,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.appService.cancelMine(maDK, request.user!.maSV!);
+  }
+
 
   @Get()
   findAll() {

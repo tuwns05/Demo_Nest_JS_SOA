@@ -38,8 +38,11 @@ describe('dangky authentication (HTTP)', () => {
     create: vi.fn().mockResolvedValue({ message: 'created' }),
     update: vi.fn().mockResolvedValue({ message: 'updated' }),
     remove: vi.fn().mockResolvedValue({ message: 'deleted' }),
+    cancelMine: vi.fn().mockResolvedValue({ message: 'cancelled', data: { MaDK: 5 } }),
     hasRegistrationsForStudent: vi.fn().mockResolvedValue(true),
     hasRegistrationsForTopic: vi.fn().mockResolvedValue(false),
+    occupiedTopicIds: vi.fn().mockResolvedValue([2]),
+    registeredStudentIds: vi.fn().mockResolvedValue(['SV001']),
     getHealth: vi.fn().mockResolvedValue({ status: 'ok', service: 'dangky' }),
   };
 
@@ -124,6 +127,23 @@ describe('dangky authentication (HTTP)', () => {
     expect(service.hasRegistrationsForTopic).toHaveBeenCalledWith(2);
   });
 
+  it('exposes occupied topic IDs to both roles without exposing registrations', async () => {
+    await request(app.getHttpServer()).get('/dangky/occupied-topics').expect(401);
+    for (const role of ['admin', 'student']) {
+      const authorization = 'Bearer ' + jwt.sign({ sub: '1', role, maSV: 'SV001' }, { expiresIn: '15m' });
+      await request(app.getHttpServer()).get('/dangky/occupied-topics')
+        .set('Authorization', authorization).expect(200, [2]);
+    }
+  });
+
+  it('restricts registered student IDs to admins', async () => {
+    await request(app.getHttpServer()).get('/dangky/registered-students').expect(401);
+    const admin = 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
+    const student = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).get('/dangky/registered-students').set('Authorization', student).expect(403);
+    await request(app.getHttpServer()).get('/dangky/registered-students').set('Authorization', admin).expect(200, ['SV001']);
+  });
+
   it('routes every CRUD operation with a valid JWT', async () => {
     const authorization =
       'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
@@ -204,6 +224,25 @@ describe('dangky authentication (HTTP)', () => {
       .send({ maDT: 3 }).expect(201);
     expect(service.create).toHaveBeenCalledWith({ maSV: 'SV001', maDT: 3, trangThai: 'Chờ duyệt' }, authorization);
   });
+
+  it('cancels with the signed identity even if the request supplies another student ID', async () => {
+    const authorization = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).delete('/dangky/me/5').set('Authorization', authorization)
+      .send({ maSV: 'SV002' }).expect(200, { message: 'cancelled', data: { MaDK: 5 } });
+    expect(service.cancelMine).toHaveBeenCalledWith(5, 'SV001');
+    expect(service.remove).not.toHaveBeenCalled();
+  });
+
+  it('protects cancellation and validates registration IDs before calling the service', async () => {
+    await request(app.getHttpServer()).delete('/dangky/me/5').expect(401);
+    const admin = 'Bearer ' + jwt.sign({ sub: '1', role: 'admin' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).delete('/dangky/me/5').set('Authorization', admin).expect(403);
+    const student = 'Bearer ' + jwt.sign({ sub: '2', role: 'student', maSV: 'SV001' }, { expiresIn: '15m' });
+    await request(app.getHttpServer()).delete('/dangky/me/abc').set('Authorization', student).expect(400);
+    expect(service.cancelMine).not.toHaveBeenCalled();
+  });
+
+
 
   it.each([
     { maDT: 1, maSV: 'SV002' }, { maDT: 1, trangThai: 'Đã duyệt' },

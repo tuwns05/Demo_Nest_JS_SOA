@@ -2,7 +2,7 @@ import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angula
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { GoogleButtonComponent } from '../auth/google-button.component';
 import { API_BASE, MutationResponse, apiError } from '../../core/api';
@@ -22,6 +22,10 @@ export class StudentComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   readonly profile = signal<SinhVien | null>(null);
   readonly topics = signal<DeTai[]>([]);
+  readonly occupiedTopicIds = signal<Set<number>>(new Set());
+  readonly availableTopics = computed(() => this.registrations().length ? [] : this.topics().filter(
+    topic => !this.occupiedTopicIds().has(Number(topic.MaDT)),
+  ));
   readonly registrations = signal<DangKy[]>([]);
   readonly profileLoading = signal(false);
   readonly topicsLoading = signal(false);
@@ -36,7 +40,10 @@ export class StudentComponent implements OnInit {
   readonly linkBusy = signal(false);
   readonly linkCompleted = signal(false);
   readonly submitting = signal<number | null>(null);
-  readonly registeredIds = computed(() => new Set(this.registrations().map(item => Number(item.MaDT))));
+  readonly cancelTarget = signal<DangKy | null>(null);
+  readonly cancelling = signal<number | null>(null);
+  readonly cancelError = signal('');
+  readonly cancelMessage = signal('');
 
   ngOnInit(): void {
     this.loadProfile();
@@ -76,10 +83,16 @@ export class StudentComponent implements OnInit {
     if (this.topicsLoading()) return;
     this.topicsLoading.set(true);
     this.topicsError.set('');
-    this.http.get<DeTai[]>(API_BASE + '/detai')
+    forkJoin({
+      topics: this.http.get<DeTai[]>(API_BASE + '/detai'),
+      occupied: this.http.get<number[]>(API_BASE + '/dangky/occupied-topics'),
+    })
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.topicsLoading.set(false)))
       .subscribe({
-        next: value => this.topics.set(value),
+        next: ({ topics, occupied }) => {
+          this.topics.set(topics);
+          this.occupiedTopicIds.set(new Set(occupied.map(Number)));
+        },
         error: error => this.topicsError.set(apiError(error)),
       });
   }
@@ -97,22 +110,63 @@ export class StudentComponent implements OnInit {
   }
 
   register(topic: DeTai): void {
-    if (this.submitting() !== null || !this.profile() || this.registrationsLoading() ||
-        this.registrationsError() || this.registeredIds().has(Number(topic.MaDT))) return;
+    if (this.submitting() !== null || this.cancelling() !== null || !this.profile() || this.topicsLoading() || this.topicsError() || this.registrationsLoading() ||
+        this.registrationsError() || this.registrations().length || !this.availableTopics().some(item => Number(item.MaDT) === Number(topic.MaDT))) return;
     this.submitting.set(Number(topic.MaDT));
     this.submitError.set('');
     this.message.set('');
+    this.cancelMessage.set('');
     // The backend assigns identity, date and initial status.
     this.http.post<MutationResponse<DangKy>>(API_BASE + '/dangky/me', { maDT: Number(topic.MaDT) })
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.submitting.set(null)))
       .subscribe({
         next: response => {
           this.registrations.update(items => [response.data, ...items.filter(item => item.MaDK !== response.data.MaDK)]);
+          this.occupiedTopicIds.update(ids => new Set([...ids, Number(topic.MaDT)]));
           this.message.set('Đăng ký đồ án thành công. Trạng thái: Chờ duyệt.');
         },
         error: error => {
           this.submitError.set(apiError(error));
-          if (error.status === 409) this.loadRegistrations();
+          if (error.status === 409) {
+            this.loadTopics();
+            this.loadRegistrations();
+          }
+        },
+      });
+  }
+
+  askCancel(item: DangKy): void {
+    if (this.cancelling() !== null || this.submitting() !== null || this.registrationsLoading() || this.topicsLoading()) return;
+    this.cancelTarget.set(item);
+    this.cancelError.set('');
+    this.cancelMessage.set('');
+  }
+
+  cancelRegistration(): void {
+    const item = this.cancelTarget();
+    if (!item || this.cancelling() !== null || this.submitting() !== null || this.registrationsLoading() || this.topicsLoading()) return;
+    this.cancelling.set(item.MaDK);
+    this.cancelError.set('');
+    this.cancelMessage.set('');
+    this.message.set('');
+    this.submitError.set('');
+    this.http.delete<MutationResponse<Pick<DangKy, 'MaDK'>>>(API_BASE + '/dangky/me/' + item.MaDK)
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.cancelling.set(null)))
+      .subscribe({
+        next: response => {
+          this.registrations.update(items => items.filter(value => value.MaDK !== item.MaDK));
+          this.cancelTarget.set(null);
+          this.cancelMessage.set(response.message);
+          this.loadTopics();
+          this.loadRegistrations();
+        },
+        error: error => {
+          this.cancelError.set(apiError(error));
+          if (error.status === 404) {
+            this.cancelTarget.set(null);
+            this.loadTopics();
+            this.loadRegistrations();
+          }
         },
       });
   }

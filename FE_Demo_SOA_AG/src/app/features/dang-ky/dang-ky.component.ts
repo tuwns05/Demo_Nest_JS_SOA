@@ -32,6 +32,14 @@ export class DangKyComponent implements OnInit {
     return this.searchFound() ? this.store.items().filter((item) => Number(item.MaDK) === id) : [];
   });
   readonly mode = signal<'create' | 'edit' | 'detail' | 'delete' | null>(null);
+  readonly occupiedTopicIds = signal<Set<number>>(new Set());
+  readonly registeredStudentIds = signal<Set<string>>(new Set());
+  readonly availableStudents = computed(() => this.students.students().filter(
+    student => !this.registeredStudentIds().has(student.MaSV.trim().toUpperCase()),
+  ));
+  readonly availableTopics = computed(() => this.topics.items().filter(
+    topic => !this.occupiedTopicIds().has(Number(topic.MaDT)),
+  ));
   readonly current = signal<DangKy | null>(null);
   form = this.emptyForm();
 
@@ -90,15 +98,21 @@ export class DangKyComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     this.busy.set(true);
-    forkJoin([this.students.list(), this.topics.list()])
+    forkJoin([this.students.list(), this.topics.list(), this.store.occupiedTopicIds(), this.store.registeredStudentIds()])
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busy.set(false)),
       )
       .subscribe({
-        next: () => {
-          if (!this.students.students().length || !this.topics.items().length) {
-            this.error.set('Cần có sinh viên và đề tài trước khi tạo đăng ký.');
+        next: ([, , occupied, registered]) => {
+          this.occupiedTopicIds.set(new Set(occupied.map(Number)));
+          this.registeredStudentIds.set(new Set(registered.map(id => id.trim().toUpperCase())));
+          if (!this.availableStudents().length) {
+            this.error.set('Không còn sinh viên chưa đăng ký đề tài.');
+            return;
+          }
+          if (!this.availableTopics().length) {
+            this.error.set('Không còn đề tài trống để đăng ký.');
             return;
           }
           this.mode.set('create');
@@ -173,16 +187,40 @@ export class DangKyComponent implements OnInit {
     operation
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.busy.set(false)),
       )
       .subscribe({
         next: (result) => {
+          this.busy.set(false);
           this.message.set(result.message);
           this.mode.set(null);
           this.current.set(null);
           this.form = this.emptyForm();
         },
-        error: (error) => this.error.set(apiError(error)),
+        error: (error) => {
+          this.busy.set(false);
+          this.error.set(apiError(error));
+          if (mode === 'create' && error.status === 409) {
+            this.refreshAvailability();
+          }
+        },
+      });
+  }
+
+  private refreshAvailability() {
+    this.busy.set(true);
+    forkJoin([this.store.occupiedTopicIds(), this.store.registeredStudentIds()])
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: ([occupied, registered]) => {
+          this.occupiedTopicIds.set(new Set(occupied.map(Number)));
+          this.registeredStudentIds.set(new Set(registered.map(id => id.trim().toUpperCase())));
+          if (this.form.maDT !== null && this.occupiedTopicIds().has(Number(this.form.maDT))) this.form.maDT = null;
+          if (this.registeredStudentIds().has(this.form.maSV.trim().toUpperCase())) this.form.maSV = '';
+        },
+        error: error => {
+          this.mode.set(null);
+          this.error.set(apiError(error));
+        },
       });
   }
 

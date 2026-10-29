@@ -39,26 +39,28 @@
 <section class="student-section" aria-labelledby="topics-title">
   <div class="section-heading">
     <div><h2 id="topics-title">Đề tài có thể đăng ký</h2><p class="muted">Chọn đề tài phù hợp để gửi đăng ký chờ duyệt.</p></div>
-    <button class="button subtle" (click)="loadTopics()" [disabled]="topicsLoading()">Tải lại đề tài</button>
+    <button class="button subtle" (click)="loadTopics()" [disabled]="topicsLoading() || cancelling() !== null">Tải lại đề tài</button>
   </div>
   @if (message()) { <p class="alert success" role="status">{{ message() }}</p> }
   @if (submitError()) { <p class="alert error" role="alert">{{ submitError() }}</p> }
   @if (topicsError()) { <p class="alert error" role="alert">{{ topicsError() }}</p> }
   @if (topicsLoading()) {
     <p class="muted" role="status">Đang tải danh sách đề tài…</p>
-  } @else if (!topicsError() && !topics().length) {
-    <div class="panel empty-state">Chưa có đề tài. Vui lòng quay lại sau.</div>
+  } @else if (registrations().length) {
+    <div class="panel empty-state">Bạn đã đăng ký đề tài. Để chọn đề tài khác, hãy hủy đăng ký tại mục “Đăng ký của tôi”.</div>
+  } @else if (!topicsError() && !availableTopics().length) {
+    <div class="panel empty-state">Hiện chưa có đề tài còn trống. Vui lòng quay lại sau.</div>
   }
   <div class="topic-grid">
-    @for (topic of topics(); track topic.MaDT) {
+    @for (topic of availableTopics(); track topic.MaDT) {
       <article class="panel topic-card">
         <span class="eyebrow">ĐỀ TÀI #{{ topic.MaDT }}</span><h3>{{ topic.TenDT }}</h3>
         <p class="topic-description">{{ topic.MoTa || 'Chưa có mô tả cho đề tài này.' }}</p>
         <p class="muted">Giảng viên hướng dẫn: <strong>{{ topic.GiangVienHD || 'Chưa cập nhật' }}</strong></p>
         <button class="button primary" (click)="register(topic)"
-          [disabled]="submitting() !== null || !profile() || registrationsLoading() || !!registrationsError() || registeredIds().has(+topic.MaDT)"
+          [disabled]="submitting() !== null || cancelling() !== null || !profile() || topicsLoading() || !!topicsError() || registrationsLoading() || !!registrationsError()"
           [attr.aria-label]="'Đăng ký đề tài ' + topic.TenDT">
-          {{ registeredIds().has(+topic.MaDT) ? 'Đã đăng ký' : submitting() === +topic.MaDT ? 'Đang đăng ký…' : 'Đăng ký đồ án' }}
+          {{ submitting() === +topic.MaDT ? 'Đang đăng ký…' : 'Đăng ký đồ án' }}
         </button>
       </article>
     }
@@ -67,9 +69,11 @@
 <section class="panel student-history" aria-labelledby="history-title">
   <div class="section-heading">
     <h2 id="history-title">Đăng ký của tôi</h2>
-    <button class="button subtle" (click)="loadRegistrations()" [disabled]="registrationsLoading() || submitting() !== null">Tải lại đăng ký</button>
+    <button class="button subtle" (click)="loadRegistrations()" [disabled]="registrationsLoading() || submitting() !== null || cancelling() !== null">Tải lại đăng ký</button>
   </div>
   @if (registrationsError()) { <p class="alert error" role="alert">{{ registrationsError() }}</p> }
+  @if (cancelError()) { <p class="alert error" role="alert">{{ cancelError() }}</p> }
+  @if (cancelMessage()) { <p class="alert success" role="status">{{ cancelMessage() }}</p> }
   @if (registrationsLoading()) {
     <p class="muted" role="status">Đang tải đăng ký…</p>
   } @else if (!registrationsError() && !registrations().length) {
@@ -78,12 +82,28 @@
   @if (registrations().length) {
     <div class="table-scroll">
       <table>
-        <thead><tr><th>Mã đăng ký</th><th>Đề tài</th><th>Ngày đăng ký</th><th>Trạng thái</th></tr></thead>
+        <thead><tr><th>Mã đăng ký</th><th>Đề tài</th><th>Ngày đăng ký</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
         <tbody>
           @for (item of registrations(); track item.MaDK) {
             <tr><td>#{{ item.MaDK }}</td><td>{{ topicName(item.MaDT) }}</td>
               <td>{{ item.NgayDangKy ? (item.NgayDangKy | date:'dd/MM/yyyy') : '—' }}</td>
-              <td><span class="class-tag">{{ item.TrangThai || 'Chờ duyệt' }}</span></td></tr>
+              <td><span class="class-tag">{{ item.TrangThai || 'Chờ duyệt' }}</span></td>
+              <td>
+                @if (cancelTarget()?.MaDK === item.MaDK) {
+                  <p>Hủy đăng ký đề tài này để chọn đề tài khác?</p>
+                  <div class="cancel-actions">
+                    <button class="button subtle" (click)="cancelTarget.set(null)" [disabled]="cancelling() !== null">Giữ đăng ký</button>
+                    <button class="button danger" (click)="cancelRegistration()"
+                      [disabled]="cancelling() !== null || submitting() !== null || registrationsLoading() || topicsLoading()">
+                      {{ cancelling() === item.MaDK ? 'Đang hủy…' : 'Xác nhận hủy' }}
+                    </button>
+                  </div>
+                } @else {
+                  <button class="button subtle" (click)="askCancel(item)"
+                    [disabled]="cancelling() !== null || submitting() !== null || registrationsLoading() || topicsLoading()"
+                    [attr.aria-label]="'Hủy đăng ký đề tài ' + topicName(item.MaDT)">Hủy đăng ký</button>
+                }
+              </td></tr>
           }
         </tbody>
       </table>

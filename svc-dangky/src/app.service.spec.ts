@@ -92,6 +92,47 @@ describe('Registration CRUD', () => {
     query.mockResolvedValueOnce({ recordset: [{ MaDK: 1 }] });
     await expect(service.create({ maSV: 'SV001', maDT: 2 }, 'Bearer test')).rejects.toBeInstanceOf(ConflictException);
     expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('WHERE MaSV = @maSV OR MaDT = @maDT'), { maSV: 'SV001', maDT: 2 });
+  });
+
+  it.each([2601, 2627])('returns conflict when a concurrent insert wins (%s)', async (number) => {
+    query.mockResolvedValueOnce({ recordset: [] }).mockRejectedValueOnce({ number });
+    await expect(service.create({ maSV: 'SV002', maDT: 2 }, 'Bearer test'))
+      .rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects an existing student registration even for another topic', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ StudentRegistered: 1 }] });
+    await expect(service.create({ maSV: 'SV001', maDT: 7 }, 'Bearer test'))
+      .rejects.toThrow('Sinh viên đã đăng ký đề tài');
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('identifies the student uniqueness constraint for concurrent registrations', async () => {
+    query.mockResolvedValueOnce({ recordset: [] })
+      .mockRejectedValueOnce({ number: 2627, message: 'Violation of UQ_DANGKY_MaSV' });
+    await expect(service.create({ maSV: 'SV001', maDT: 7 }, 'Bearer test'))
+      .rejects.toThrow('Sinh viên đã đăng ký đề tài');
+  });
+
+  it('lists registered student IDs for filtering the admin form', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ MaSV: 'SV001' }] });
+    await expect(service.registeredStudentIds()).resolves.toEqual(['SV001']);
+  });
+
+  it('handles wrapped SQL duplicate errors and preserves other database errors', async () => {
+    query.mockResolvedValueOnce({ recordset: [] })
+      .mockRejectedValueOnce({ originalError: { info: { number: 2627 } } });
+    await expect(service.create({ maSV: 'SV002', maDT: 2 }, 'Bearer test'))
+      .rejects.toBeInstanceOf(ConflictException);
+    const failure = new Error('connection lost');
+    query.mockResolvedValueOnce({ recordset: [] }).mockRejectedValueOnce(failure);
+    await expect(service.create({ maSV: 'SV002', maDT: 2 }, 'Bearer test')).rejects.toBe(failure);
+  });
+
+  it('returns occupied topic IDs without student details', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ MaDT: 2 }, { MaDT: 7 }] });
+    await expect(service.occupiedTopicIds()).resolves.toEqual([2, 7]);
   });
 
   it('returns 404 for missing details and deletions', async () => {
@@ -101,4 +142,21 @@ describe('Registration CRUD', () => {
     );
     await expect(service.remove(999)).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('cancels only a registration owned by the authenticated student', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ MaDK: 5 }] });
+    await expect(service.cancelMine(5, 'SV001')).resolves.toMatchObject({ data: { MaDK: 5 } });
+    expect(query).toHaveBeenCalledWith(
+      'DELETE FROM dbo.DANGKY OUTPUT deleted.MaDK WHERE MaDK = @maDK AND MaSV = @maSV',
+      { maDK: 5, maSV: 'SV001' },
+    );
+  });
+
+  it('returns 404 when the registration belongs to another student or is already cancelled', async () => {
+    query.mockResolvedValueOnce({ recordset: [] });
+    await expect(service.cancelMine(5, 'SV002')).rejects.toBeInstanceOf(NotFoundException);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+
 });

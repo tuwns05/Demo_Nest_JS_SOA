@@ -11,6 +11,12 @@ Chạy từng file nguyên vẹn trong SQL Server Management Studio (SSMS), trê
 | 05-google-login.sql | SOA_AUTH | dbo.UserExternalIdentity | svc-auth (đăng nhập Google) |
 | 06-email-verification.sql | SOA_AUTH | dbo.EmailVerification | svc-auth (mã xác thực email) |
 | 07-dangky-snapshot.sql | SOA_DANGKY | thêm HoTenSinhVien và TenDeTai vào dbo.DANGKY | svc-dangky |
+| 08-dangky-one-student-per-topic.sql | SOA_DANGKY | UNIQUE(MaDT): mỗi đề tài tối đa một đăng ký | svc-dangky |
+| 09-dangky-one-topic-per-student.sql | SOA_DANGKY | UNIQUE(MaSV): mỗi sinh viên tối đa một đăng ký | svc-dangky |
+
+Chạy `09-dangky-one-topic-per-student.sql` để bật giới hạn một đăng ký cho mỗi sinh viên trên database cũ. Script dừng nếu có mã sinh viên trùng trong `DANGKY`; không tự xóa dữ liệu. Xem dữ liệu trùng bằng `SELECT MaSV, COUNT(*) FROM dbo.DANGKY GROUP BY MaSV HAVING COUNT(*) > 1`.
+
+Với database đã tồn tại, chạy `08-dangky-one-student-per-topic.sql` trước khi dùng tính năng lọc đề tài còn trống. Script dừng nếu có đề tài đã được nhiều sinh viên đăng ký; kiểm tra các dòng trùng bằng `SELECT MaDT, COUNT(*) FROM dbo.DANGKY GROUP BY MaDT HAVING COUNT(*) > 1`, giải quyết dữ liệu theo nghiệp vụ rồi chạy lại. Script không tự xóa đăng ký.
 
 Ba bảng nghiệp vụ giữ kiểu dữ liệu, độ dài, nullability, identity và default theo DtbDA.sql. Bảng User theo db/schema.sql của backend. Các database và bảng đã tồn tại được giữ nguyên; script không migrate cấu trúc bảng có sẵn.
 

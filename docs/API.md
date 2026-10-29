@@ -34,9 +34,15 @@ Swagger trực tiếp ở /api từng service, chưa có Swagger tổng hợp. R
 
 Các API CRUD đều cần JWT, kể cả truy cập trực tiếp service. Body sai, trường thừa hoặc PATCH rỗng trả 400. Dữ liệu trả về dùng tên cột SQL (MaDT, TenDT, MaDK, MaSV...). Ngày đăng ký định dạng YYYY-MM-DD; bỏ ngày khi tạo dùng GETDATE(). Tạo/sửa đăng ký gọi svc-sinhvien và svc-detai kèm token để kiểm tra mã; mã không tồn tại trả 404, dịch vụ không kết nối được trả 503.
 
-Chưa có phân trang hoặc ràng buộc database chống đăng ký trùng khi có yêu cầu đồng thời. Xóa đăng ký trước khi xóa sinh viên/đề tài. Giữ API tạo sinh viên cũ `/sinhvien/sinh-vien/create`.
+Chưa có phân trang. Mỗi đề tài tối đa một đăng ký, bảo vệ bằng `UNIQUE(MaDT)` trong `SOA_DANGKY.dbo.DANGKY`; đăng ký vào đề tài đã có người trả 409, kể cả khi có yêu cầu đồng thời. Với database cũ, chạy `db/separate/08-dangky-one-student-per-topic.sql`. Xóa đăng ký trước khi xóa sinh viên/đề tài. Giữ API tạo sinh viên cũ `/sinhvien/sinh-vien/create`.
+
+`GET /dangky/occupied-topics` dành cho admin và student, trả mảng mã đề tài đã có đăng ký, ví dụ `[2, 7]`, không kèm thông tin sinh viên. Form tạo đăng ký quản trị và danh sách chọn đề tài của sinh viên loại các mã này khỏi danh sách từ `/detai`. Xóa đăng ký sẽ giải phóng đề tài sau khi tải lại danh sách. Trạng thái đăng ký không thay đổi việc chiếm chỗ; mọi dòng còn trong `DANGKY` đều giữ đề tài.
+
+Mỗi sinh viên cũng chỉ có tối đa một đăng ký, bảo vệ bằng kiểm tra API và `UNIQUE(MaSV)`. Với database cũ, chạy `db/separate/09-dangky-one-topic-per-student.sql` sau khi xử lý các mã sinh viên đang có nhiều đăng ký. `GET /dangky/registered-students` chỉ dành cho admin, trả các mã sinh viên đã đăng ký để form tạo loại khỏi ô chọn; API này không cung cấp cho student. Trang sinh viên dựa vào `/dangky/me` để khóa đăng ký thêm. Khi gặp 409, giao diện tải lại dữ liệu để loại sinh viên hoặc đề tài vừa được đăng ký ở phiên khác. Xóa đăng ký sẽ cho phép sinh viên đăng ký lại sau khi tải lại danh sách; đổi trạng thái không giải phóng đăng ký.
 
 # Kiểm tra đăng ký trước khi xóa sinh viên hoặc đề tài
+
+Sinh viên có thể hủy từng đăng ký của chính mình qua `DELETE /dangky/me/:maDK`. API lấy MaSV từ JWT, xóa với cả MaDK và MaSV trong cùng câu lệnh SQL, trả 404 nếu đăng ký không tồn tại hoặc thuộc sinh viên khác. Không giới hạn theo trạng thái đăng ký. Sau khi xác nhận hủy trên giao diện, dòng đăng ký bị xóa khỏi DANGKY; trang tải lại `/dangky/me`, `/detai` và `/dangky/occupied-topics` để cho chọn đề tài còn trống. Lỗi hủy không xóa dòng khỏi giao diện; 404 tải lại để đồng bộ nếu đăng ký đã bị xóa ở phiên khác.
 
 `svc-dangky` cung cấp `GET /dangky/exists/student/:maSV` và `GET /dangky/exists/topic/:maDT` cho tài khoản quản trị. Mỗi API trả `{ "exists": true|false }` và chỉ kiểm tra một dòng trong database. `svc-sinhvien` và `svc-detai` dùng các API này trước khi xóa; nếu có đăng ký, lệnh xóa trả `409`. Nếu không kiểm tra được (lỗi mạng hoặc `svc-dangky` không sẵn sàng), lệnh xóa dừng và trả lỗi. Cấu hình `SERVICE_URL_DANGKY` trên hai service; mặc định trong `.env.example` là `http://localhost:3003`.
 

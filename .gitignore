@@ -3,6 +3,7 @@
 
 # Compiled output and caches
 **/dist/
+**/dist-dev/
 **/build/
 **/.nest/
 **/coverage/

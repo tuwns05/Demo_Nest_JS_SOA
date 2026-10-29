@@ -189,7 +189,7 @@
                   @if (mode() === 'edit' && current()) {
                     <option [value]="current()!.MaSV">{{ current()!.MaSV }} — {{ current()!.HoTenSinhVien }}</option>
                   }
-                  @for (student of students.students(); track student.MaSV) {
+                  @for (student of availableStudents(); track student.MaSV) {
                     <option [value]="student.MaSV">{{ student.MaSV }} — {{ student.HoTen }}</option>
                   }
                 </select>
@@ -201,7 +201,7 @@
                   @if (mode() === 'edit' && current()) {
                     <option [ngValue]="+current()!.MaDT">{{ current()!.MaDT }} — {{ current()!.TenDeTai }}</option>
                   }
-                  @for (topic of topics.items(); track topic.MaDT) {
+                  @for (topic of availableTopics(); track topic.MaDT) {
                     <option [ngValue]="+topic.MaDT">{{ topic.MaDT }} — {{ topic.TenDT }}</option>
                   }
                 </select>

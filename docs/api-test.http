@@ -149,7 +149,7 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/sinhvien/health?page=1
 Authorization: Bearer {{token}}
 
-### Header giả bị thay bằng sub của JWT; quan sát upstream bằng script check-gateway
+### Header giả bị thay bằng sub đã xác minh trong JWT
 GET {{baseUrl}}/sinhvien/health
 Authorization: Bearer {{token}}
 x-user-id: 999

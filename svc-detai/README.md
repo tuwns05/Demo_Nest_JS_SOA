@@ -14,6 +14,7 @@ Dùng `JWT_SECRET` ít nhất 32 ký tự, giống svc-auth/gateway/svc-sinhvien
 | --- | --- |
 | PORT | Cổng riêng của tiến trình |
 | DB_NAME | SOA_DETAI, đặt trong .env của service |
+| SERVICE_URL_DANGKY | URL dịch vụ đăng ký để kiểm tra trước khi xóa; mặc định http://localhost:3003 |
 
 Cấu hình SQL Server và JWT_SECRET đọc từ ../.env; DB_NAME riêng đọc từ .env của service. Xem mẫu gốc và mẫu riêng, không commit .env.
 

@@ -44,7 +44,6 @@ Gateway trả 503 kèm bản tổng hợp vẫn được hiển thị để bi�
 
 ```powershell
 npm.cmd run build
-npm.cmd test -- --watch=false
 ```
 
 Build nằm trong dist/FE_Demo_SOA_AG/browser. Khi tự triển khai bản build, cấu hình máy chủ phục vụ frontend: chuyển /api/* đến gateway và bỏ /api, còn route giao diện trả index.html. Proxy trong Angular dev server chỉ dùng khi chạy npm start.

@@ -8,7 +8,7 @@ export class RegistrationClient {
   async hasTopicRegistrations(maDT: number, authorization: string): Promise<boolean> {
     let response: Response;
     try {
-      const base = this.config.getOrThrow<string>('SERVICE_URL_DANGKY').replace(/\/$/, '');
+      const base = (this.config.get<string>('SERVICE_URL_DANGKY') ?? 'http://localhost:3003').replace(/\/$/, '');
       response = await fetch(`${base}/dangky/exists/topic/${maDT}`, {
         headers: { Authorization: authorization },
         signal: AbortSignal.timeout(3500),

@@ -14,6 +14,9 @@
 @if (error() && !mode()) {
   <p class="alert error" role="alert">{{ error() }}</p>
 }
+@if (registrationStatusError()) {
+  <p class="alert error" role="alert">Chưa tải được trạng thái đăng ký. {{ registrationStatusError() }} Bấm “Làm mới” để thử lại.</p>
+}
 
 <section class="panel">
   <form class="table-toolbar" (ngSubmit)="search()">
@@ -51,13 +54,14 @@
           <th>Mã đề tài</th>
           <th>Tên đề tài</th>
           <th>Giảng viên hướng dẫn</th>
+          <th>Đăng ký</th>
           <th class="align-right">Thao tác</th>
         </tr>
       </thead>
       <tbody>
         @if (loading()) {
           <tr>
-            <td colspan="4" class="empty-cell">Đang tải danh sách…</td>
+            <td colspan="5" class="empty-cell">Đang tải danh sách…</td>
           </tr>
         } @else {
           @for (item of visibleItems(); track item.MaDT) {
@@ -69,6 +73,17 @@
                 </button>
               </td>
               <td>{{ item.GiangVienHD || 'Chưa có' }}</td>
+              <td>
+                @if (registrationStatusLoading()) {
+                  <span class="muted">Đang kiểm tra…</span>
+                } @else if (occupiedTopicIds() === null) {
+                  <span class="muted">Chưa xác định</span>
+                } @else if (occupiedTopicIds()!.has(+item.MaDT)) {
+                  <span class="status-pill online"><span class="status-dot" aria-hidden="true"></span>Đã đăng ký</span>
+                } @else {
+                  <span class="muted">Chưa đăng ký</span>
+                }
+              </td>
               <td>
                 <div class="row-actions">
                   <button class="text-button" (click)="open(item, 'detail')" [disabled]="busy()">
@@ -89,7 +104,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="4" class="empty-cell">
+              <td colspan="5" class="empty-cell">
                 {{
                   searchId() !== null
                     ? 'Không có kết quả tìm kiếm.'

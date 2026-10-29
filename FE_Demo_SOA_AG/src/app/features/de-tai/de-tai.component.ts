@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { apiError } from '../../core/api';
 import { DialogFocusDirective } from '../../shared/dialog-focus.directive';
 import { DeTai, DeTaiBody, DeTaiService } from './de-tai.service';
+import { DangKyService } from '../dang-ky/dang-ky.service';
 
 @Component({
   selector: 'app-de-tai',
@@ -14,6 +15,10 @@ import { DeTai, DeTaiBody, DeTaiService } from './de-tai.service';
 })
 export class DeTaiComponent implements OnInit {
   readonly store = inject(DeTaiService);
+  private readonly registrations = inject(DangKyService);
+  readonly occupiedTopicIds = signal<Set<number> | null>(null);
+  readonly registrationStatusLoading = signal(false);
+  readonly registrationStatusError = signal('');
 
   private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(false);
@@ -38,6 +43,7 @@ export class DeTaiComponent implements OnInit {
 
   reload() {
     if (this.loading() || this.busy()) return;
+    this.loadRegistrationStatus();
     this.searchCode = '';
     this.searchId.set(null);
     this.message.set('');
@@ -65,6 +71,7 @@ export class DeTaiComponent implements OnInit {
       return;
     }
     this.searchId.set(id);
+    this.loadRegistrationStatus();
     this.searchFound.set(false);
     this.loading.set(true);
     this.error.set('');
@@ -78,6 +85,19 @@ export class DeTaiComponent implements OnInit {
       .subscribe({
         next: () => this.searchFound.set(true),
         error: (error) => this.error.set(apiError(error)),
+      });
+  }
+
+  private loadRegistrationStatus() {
+    if (this.registrationStatusLoading()) return;
+    this.registrationStatusLoading.set(true);
+    this.registrationStatusError.set('');
+    this.occupiedTopicIds.set(null);
+    this.registrations.occupiedTopicIds()
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.registrationStatusLoading.set(false)))
+      .subscribe({
+        next: ids => this.occupiedTopicIds.set(new Set(ids.map(Number))),
+        error: error => this.registrationStatusError.set(apiError(error)),
       });
   }
 

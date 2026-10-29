@@ -23,7 +23,9 @@ BEGIN
         MaDK INT IDENTITY(1,1) NOT NULL
             CONSTRAINT PK_DANGKY PRIMARY KEY,
         MaSV VARCHAR(20) NOT NULL,
+        HoTenSinhVien NVARCHAR(100) NULL,
         MaDT INT NOT NULL,
+        TenDeTai NVARCHAR(255) NULL,
         NgayDangKy DATE NULL
             CONSTRAINT DF_DANGKY_NgayDangKy DEFAULT (GETDATE()),
         TrangThai NVARCHAR(50) NULL

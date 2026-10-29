@@ -69,9 +69,8 @@ export class AppController {
   update(
     @Param('maDK', ParseIntPipe) maDK: number,
     @Body() dto: UpdateDangKyDto,
-    @Headers('authorization') authorization: string,
   ) {
-    return this.appService.update(maDK, dto, authorization);
+    return this.appService.update(maDK, dto);
   }
 
   @Delete(':maDK')

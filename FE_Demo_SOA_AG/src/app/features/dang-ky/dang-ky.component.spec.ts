@@ -14,7 +14,9 @@ describe('DangKy CRUD screen', () => {
   const item = {
     MaDK: 1,
     MaSV: 'SV001',
+    HoTenSinhVien: 'Nguyễn Văn A',
     MaDT: 2,
+    TenDeTai: 'Quản lý đồ án',
     NgayDangKy: '2026-10-09T00:00:00.000Z',
     TrangThai: 'Chờ duyệt',
   };
@@ -41,12 +43,6 @@ describe('DangKy CRUD screen', () => {
     const list = backend.expectOne('/api/dangky');
     expect(list.request.headers.get('Authorization')).toBe('Bearer ' + token);
     list.flush([item]);
-    backend
-      .expectOne('/api/sinhvien')
-      .flush([{ MaSV: 'SV001', HoTen: 'Nguyễn Văn A', Email: 'a@example.com', Lop: 'CNTT' }]);
-    backend
-      .expectOne('/api/detai')
-      .flush([{ MaDT: '2', TenDT: 'Quản lý đồ án', MoTa: null, GiangVienHD: null }]);
     fixture.detectChanges();
     await fixture.whenStable();
   });
@@ -61,6 +57,12 @@ describe('DangKy CRUD screen', () => {
   it('renders backend data, submits creation and updates the list', async () => {
     expect(fixture.nativeElement.textContent).toContain('Quản lý đồ án');
     page.openCreate();
+    backend
+      .expectOne('/api/sinhvien')
+      .flush([{ MaSV: 'SV001', HoTen: 'Nguyễn Văn A', Email: 'a@example.com', Lop: 'CNTT' }]);
+    backend
+      .expectOne('/api/detai')
+      .flush([{ MaDT: '2', TenDT: 'Quản lý đồ án', MoTa: null, GiangVienHD: null }]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#maSV').textContent).toContain('Nguyễn Văn A');
     expect(fixture.nativeElement.querySelector('#maDT').textContent).toContain('Quản lý đồ án');
@@ -112,8 +114,6 @@ describe('DangKy CRUD screen', () => {
     expect(fixture.nativeElement.textContent).toContain('Không có kết quả tìm kiếm.');
     page.reload();
     backend.expectOne('/api/dangky').flush([item]);
-    backend.expectOne('/api/sinhvien').flush([]);
-    backend.expectOne('/api/detai').flush([]);
     expect(page.searchId()).toBeNull();
     expect(page.visibleItems()).toEqual([item]);
     expect(page.error()).toBe('');
@@ -140,7 +140,8 @@ describe('DangKy CRUD screen', () => {
     page.save();
     const update = backend.expectOne('/api/dangky/1');
     expect(update.request.method).toBe('PATCH');
-    expect(update.request.body.maDT).toBe(2);
+    expect(update.request.body.maDT).toBeUndefined();
+    expect(update.request.body.maSV).toBeUndefined();
     expect(update.request.body.ngayDangKy).toBe('2026-10-09');
     expect(update.request.body.trangThai).toBe('Đã duyệt');
     update.flush({ message: 'Đã cập nhật', data: { ...item, TrangThai: 'Đã duyệt' } });
@@ -170,6 +171,12 @@ describe('DangKy CRUD screen', () => {
 
   it('does not submit missing required fields and clears cached data on logout', () => {
     page.openCreate();
+    backend.expectOne('/api/sinhvien').flush([
+      { MaSV: 'SV001', HoTen: 'Nguyễn Văn A', Email: 'a@example.com', Lop: 'CNTT' },
+    ]);
+    backend.expectOne('/api/detai').flush([
+      { MaDT: '2', TenDT: 'Quản lý đồ án', MoTa: null, GiangVienHD: null },
+    ]);
     page.save();
     backend.expectNone('/api/dangky');
     expect(page.error()).toBeTruthy();

@@ -15,6 +15,8 @@ describe('Registration CRUD', () => {
   );
   beforeEach(() => {
     vi.resetAllMocks();
+    student.findById.mockResolvedValue({ MaSV: 'SV001', HoTen: 'Nguyễn Văn A' });
+    topic.findById.mockResolvedValue({ MaDT: 2, TenDT: 'Quản lý đồ án' });
   });
 
   it('checks both references with the JWT before inserting', async () => {
@@ -27,7 +29,12 @@ describe('Registration CRUD', () => {
     expect(topic.findById).toHaveBeenCalledWith(2, 'Bearer test');
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('CAST(GETDATE() AS date)'),
-      expect.objectContaining({ maSV: 'SV001', maDT: 2 }),
+      expect.objectContaining({
+        maSV: 'SV001',
+        hoTenSinhVien: 'Nguyễn Văn A',
+        maDT: 2,
+        tenDeTai: 'Quản lý đồ án',
+      }),
     );
     expect(result.data).toEqual({ MaDK: 5 });
   });
@@ -45,27 +52,19 @@ describe('Registration CRUD', () => {
     },
   );
 
-  it('checks the resulting references on partial update and binds values', async () => {
-    query
-      .mockResolvedValueOnce({
-        recordset: [{ MaDK: 1, MaSV: 'SV001', MaDT: 2 }],
-      })
-      .mockResolvedValueOnce({ recordset: [{ MaDK: 1, MaDT: 3 }] });
-    await service.update(
-      1,
-      { maDT: 3, trangThai: "Đã duyệt '" },
-      'Bearer test',
-    );
-    expect(student.findById).toHaveBeenCalledWith('SV001', 'Bearer test');
-    expect(topic.findById).toHaveBeenCalledWith(3, 'Bearer test');
-    expect(query).toHaveBeenLastCalledWith(
-      expect.stringContaining('MaDT = @maDT, TrangThai = @trangThai'),
-      { maDK: 1, maDT: 3, trangThai: "Đã duyệt '" },
+  it('updates mutable fields without calling reference services', async () => {
+    query.mockResolvedValueOnce({ recordset: [{ MaDK: 1, MaDT: 2 }] });
+    await service.update(1, { trangThai: "Đã duyệt '" });
+    expect(student.findById).not.toHaveBeenCalled();
+    expect(topic.findById).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('TrangThai = @trangThai'),
+      { maDK: 1, trangThai: "Đã duyệt '" },
     );
   });
 
   it('rejects empty updates without querying', async () => {
-    await expect(service.update(1, {}, 'Bearer test')).rejects.toBeInstanceOf(
+    await expect(service.update(1, {})).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(query).not.toHaveBeenCalled();

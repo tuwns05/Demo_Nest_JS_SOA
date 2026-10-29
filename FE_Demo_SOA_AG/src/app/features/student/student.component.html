@@ -26,18 +26,13 @@
   <div class="section-heading">
     <div>
       <h2 id="google-link-title">Liên kết Google</h2>
-      <p class="muted">Nhận mã tại {{ profile()?.Email || 'email trong hồ sơ' }}, sau đó chọn tài khoản Google có cùng email.</p>
+      <p class="muted">Chọn tài khoản Google có email {{ profile()?.Email || 'trùng với email trong hồ sơ' }} để liên kết.</p>
     </div>
-    <button class="button subtle" type="button" (click)="requestGoogleLinkCode()"
-      [disabled]="linkBusy() || !profile()">Gửi mã xác thực</button>
   </div>
   @if (linkMessage()) { <p class="alert success" role="status">{{ linkMessage() }}</p> }
   @if (linkError()) { <p class="alert error" role="alert">{{ linkError() }}</p> }
-  @if (linkCodeSent()) {
-    <label for="student-google-code">Mã xác thực trong email</label>
-    <input id="student-google-code" name="studentGoogleCode" [(ngModel)]="linkCode"
-      maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
-    <p class="muted">Nhập mã rồi chọn tài khoản Google:</p>
+  @if (linkBusy()) { <p class="muted" role="status">Đang liên kết Google…</p> }
+  @if (profile()?.Email && !linkCompleted()) {
     <app-google-button (credential)="linkGoogle($event)" (failure)="linkError.set($event)" />
   }
 </section>

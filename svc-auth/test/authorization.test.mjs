@@ -41,7 +41,7 @@ test('account creation requires admin role even when calling Auth directly', asy
   } finally { await app.close(); }
 });
 
-test('registration is public while Google linking requires a student token and code', async () => {
+test('registration is public while Google linking requires an authenticated student', async () => {
   const secret = 'test-only-secret-for-email-flow-authorization';
   const jwt = new JwtService({ secret });
   let linked = 0;
@@ -52,7 +52,6 @@ test('registration is public while Google linking requires a student token and c
       { provide: AuthService, useValue: {
         requestAdminRegistration: async () => ({ message: 'sent' }),
         completeAdminRegistration: async () => ({ message: 'created' }),
-        requestGoogleLink: async () => ({ message: 'sent' }),
         linkGoogle: async () => { linked++; return { message: 'linked' }; },
       } },
       { provide: APP_GUARD, useClass: AuthGuard },
@@ -71,10 +70,10 @@ test('registration is public while Google linking requires a student token and c
     });
     assert.equal((await post('/auth/register/admin/request-code', { email: 'a@example.com' })).status, 200);
     assert.equal((await post('/auth/register/admin/complete', { email: 'a@example.com', code: '123456', password: 'secret123' })).status, 200);
-    assert.equal((await post('/auth/google/link', { credential: 'token', code: '123456' })).status, 401);
-    assert.equal((await post('/auth/google/link', { credential: 'token', code: '123456' }, 'admin')).status, 403);
-    assert.equal((await post('/auth/google/link', { credential: 'token' }, 'student')).status, 400);
-    assert.equal((await post('/auth/google/link', { credential: 'token', code: '123456' }, 'student')).status, 200);
+    assert.equal((await post('/auth/google/link', { credential: 'token' })).status, 401);
+    assert.equal((await post('/auth/google/link', { credential: 'token' }, 'admin')).status, 403);
+    assert.equal((await post('/auth/google/link', {}, 'student')).status, 400);
+    assert.equal((await post('/auth/google/link', { credential: 'token' }, 'student')).status, 200);
     assert.equal(linked, 1);
   } finally { await app.close(); }
 });

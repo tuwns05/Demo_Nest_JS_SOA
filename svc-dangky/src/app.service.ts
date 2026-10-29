@@ -19,14 +19,14 @@ export class AppService {
 
   async findAll() {
     const result = await this.databaseService.query(
-      'SELECT MaDK, MaSV, MaDT, NgayDangKy, TrangThai FROM dbo.DANGKY ORDER BY MaDK DESC',
+      'SELECT MaDK, MaSV, HoTenSinhVien, MaDT, TenDeTai, NgayDangKy, TrangThai FROM dbo.DANGKY ORDER BY MaDK DESC',
     );
     return result.recordset;
   }
 
   async findOne(maDK: number) {
     const result = await this.databaseService.query(
-      'SELECT MaDK, MaSV, MaDT, NgayDangKy, TrangThai FROM dbo.DANGKY WHERE MaDK = @maDK',
+      'SELECT MaDK, MaSV, HoTenSinhVien, MaDT, TenDeTai, NgayDangKy, TrangThai FROM dbo.DANGKY WHERE MaDK = @maDK',
       { maDK },
     );
     if (!result.recordset[0])
@@ -36,7 +36,7 @@ export class AppService {
 
   async findMine(maSV: string) {
     const result = await this.databaseService.query(
-      'SELECT MaDK, MaSV, MaDT, NgayDangKy, TrangThai FROM dbo.DANGKY WHERE MaSV = @maSV ORDER BY MaDK DESC',
+      'SELECT MaDK, MaSV, HoTenSinhVien, MaDT, TenDeTai, NgayDangKy, TrangThai FROM dbo.DANGKY WHERE MaSV = @maSV ORDER BY MaDK DESC',
       { maSV },
     );
     return result.recordset;
@@ -58,29 +58,25 @@ export class AppService {
     return result.recordset.length > 0;
   }
 
-  private async checkReferences(
-    maSV: string,
-    maDT: number,
-    authorization: string,
-  ) {
-    await this.sinhVienClient.findById(maSV, authorization);
-    await this.deTaiClient.findById(maDT, authorization);
-  }
-
   //CREATE
   async create(dto: CreateDangKyDto, authorization: string) {
-    await this.checkReferences(dto.maSV, dto.maDT, authorization);
+    const [sinhVien, deTai] = await Promise.all([
+      this.sinhVienClient.findById(dto.maSV, authorization),
+      this.deTaiClient.findById(dto.maDT, authorization),
+    ]);
 
     await this.checkDuplicate(dto.maSV, dto.maDT);
     const result = await this.databaseService.query(
-      'INSERT INTO dbo.DANGKY (MaSV, MaDT, NgayDangKy, TrangThai) OUTPUT inserted.MaDK, inserted.MaSV, inserted.MaDT, inserted.NgayDangKy, inserted.TrangThai VALUES (@maSV, @maDT, ' +
+      'INSERT INTO dbo.DANGKY (MaSV, HoTenSinhVien, MaDT, TenDeTai, NgayDangKy, TrangThai) OUTPUT inserted.MaDK, inserted.MaSV, inserted.HoTenSinhVien, inserted.MaDT, inserted.TenDeTai, inserted.NgayDangKy, inserted.TrangThai VALUES (@maSV, @hoTenSinhVien, @maDT, @tenDeTai, ' +
       (dto.ngayDangKy === undefined
         ? 'CAST(GETDATE() AS date)'
         : '@ngayDangKy') +
       ', @trangThai)',
       {
         maSV: dto.maSV,
+        hoTenSinhVien: sinhVien.HoTen,
         maDT: dto.maDT,
+        tenDeTai: deTai.TenDT,
         ngayDangKy: dto.ngayDangKy ?? null,
         trangThai: dto.trangThai ?? null,
       },
@@ -102,10 +98,8 @@ export class AppService {
   }
 
   //UPDATE 
-  async update(maDK: number, dto: UpdateDangKyDto, authorization: string) {
+  async update(maDK: number, dto: UpdateDangKyDto) {
     const fields = {
-      maSV: 'MaSV',
-      maDT: 'MaDT',
       ngayDangKy: 'NgayDangKy',
       trangThai: 'TrangThai',
     };
@@ -119,14 +113,8 @@ export class AppService {
     }
     if (!assignments.length)
       throw new BadRequestException('Cần ít nhất một trường để cập nhật');
-    const current = await this.findOne(maDK);
-    await this.checkReferences(
-      dto.maSV ?? String(current.MaSV),
-      dto.maDT ?? Number(current.MaDT),
-      authorization,
-    );
     const result = await this.databaseService.query(
-      `UPDATE dbo.DANGKY SET ${assignments.join(', ')} OUTPUT inserted.MaDK, inserted.MaSV, inserted.MaDT, inserted.NgayDangKy, inserted.TrangThai WHERE MaDK = @maDK`,
+      `UPDATE dbo.DANGKY SET ${assignments.join(', ')} OUTPUT inserted.MaDK, inserted.MaSV, inserted.HoTenSinhVien, inserted.MaDT, inserted.TenDeTai, inserted.NgayDangKy, inserted.TrangThai WHERE MaDK = @maDK`,
       parameters,
     );
     if (!result.recordset[0])

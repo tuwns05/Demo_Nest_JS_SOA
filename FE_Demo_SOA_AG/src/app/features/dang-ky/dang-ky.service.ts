@@ -8,7 +8,9 @@ import { SessionService } from '../../core/session.service';
 export interface DangKy {
   MaDK: number;
   MaSV: string;
+  HoTenSinhVien: string | null;
   MaDT: number;
+  TenDeTai: string | null;
   NgayDangKy: string | null;
   TrangThai: string | null;
 }

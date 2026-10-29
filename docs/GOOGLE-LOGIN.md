@@ -15,12 +15,12 @@ Trong Google Cloud Console, cấu hình Google Auth Platform và tạo OAuth cli
 ## Sử dụng
 
 1. Sau khi admin thêm sinh viên và cấp mật khẩu ban đầu, sinh viên đăng nhập bằng mã sinh viên và mật khẩu đó.
-2. Trong trang cá nhân sinh viên, bấm **Gửi mã xác thực** và nhập mã nhận tại email trong hồ sơ.
-3. Chọn tài khoản Google có cùng email để liên kết.
+2. Trong trang cá nhân sinh viên, tại **Liên kết Google**, bấm nút Google.
+3. Chọn tài khoản Google có email đã xác minh trùng với email trong hồ sơ. Backend xác minh token và lưu liên kết, không cần OTP hay SMTP.
 4. Từ lần sau dùng nút Google tại trang đăng nhập.
 
 Nếu Google chưa được liên kết, API trả 401 và hướng dẫn liên kết. Một Google account chỉ liên kết với một tài khoản nội bộ; mỗi tài khoản nội bộ chỉ liên kết với một Google account. Vai trò và mã sinh viên luôn lấy từ `SOA_AUTH.dbo.User`.
 
-API: `GET /auth/google/config`, `POST /auth/google`, cùng hai endpoint cho sinh viên đã đăng nhập `POST /auth/google/link/request-code` và `POST /auth/google/link`. Endpoint hoàn tất liên kết nhận cả `credential` và `code`. Chạy thêm `db/separate/06-email-verification.sql` và cấu hình SMTP theo `docs/EMAIL-VERIFICATION.md`.
+API: `GET /auth/google/config`, `POST /auth/google`, và `POST /auth/google/link` dành cho sinh viên đã đăng nhập, nhận `{ "credential": "..." }`. OTP và SMTP chỉ dùng cho đăng ký admin theo `docs/EMAIL-VERIFICATION.md`. Liên kết cũ tiếp tục sử dụng được; không cần thay đổi database.
 
 `svc-auth` cần truy cập HTTPS tới `https://www.googleapis.com/oauth2/v3/certs` để xác minh chữ ký ID token của Google. Máy người dùng cần tải được `https://accounts.google.com/gsi/client` trong trình duyệt.

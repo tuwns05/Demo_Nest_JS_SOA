@@ -38,7 +38,7 @@ test('Google token verification checks signature, audience, issuer and expiry', 
 test('Google login uses linked local user and preserves local role', async () => {
   const queries = [];
   globalThis.fetch = async url => {
-    if (String(url).includes('/sinh-vien/SV007')) return new Response(JSON.stringify({ Email: 'student@example.com' }));
+    if (String(url).includes('/sinhvien/SV007')) return new Response(JSON.stringify({ Email: 'student@example.com' }));
     return new Response(JSON.stringify({ keys: [jwk] }), { headers: { 'cache-control': 'max-age=60' } });
   };
   try {
@@ -58,25 +58,16 @@ test('Google login uses linked local user and preserves local role', async () =>
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('student Google link requires a code sent to the saved student email', async () => {
-  const sent = [];
+test('student Google link requires verified matching email and rejects duplicate links without OTP', async () => {
   const inserts = [];
-  let savedHash;
-  let used = false;
   globalThis.fetch = async url => {
-    if (String(url).includes('/sinh-vien/me')) return new Response(JSON.stringify({ Email: 'student@example.com' }));
+    if (String(url).includes('/sinhvien/me')) return new Response(JSON.stringify({ Email: 'student@example.com' }));
     return new Response(JSON.stringify({ keys: [jwk] }), { headers: { 'cache-control': 'max-age=60' } });
   };
   try {
     const service = new AuthService({ query: async (sql, p) => {
-      if (sql.includes('SELECT LastSentAt')) return { recordset: [] };
-      if (sql.includes('INSERT INTO dbo.EmailVerification')) { savedHash = p.hash; return { recordset: [] }; }
-      if (sql.includes('OUTPUT INSERTED.ConsumedAt')) {
-        if (used) return { recordset: [] };
-        if (p.hash === savedHash) used = true;
-        return { recordset: [{ ConsumedAt: used ? new Date() : null }] };
-      }
       if (sql.includes('INSERT INTO dbo.UserExternalIdentity')) {
+        if (inserts.length) throw Object.assign(new Error('Duplicate link'), { number: 2627 });
         inserts.push(p);
         return { rowsAffected: [1], recordset: [] };
       }
@@ -84,17 +75,13 @@ test('student Google link requires a code sent to the saved student email', asyn
     } }, {}, {
       getOrThrow: key => key === 'GOOGLE_CLIENT_ID' ? clientId : 'test-secret',
       get: () => 'http://localhost:3001',
-    }, { sendCode: async (email, code) => sent.push({ email, code }) });
+    }, { sendCode: async () => assert.fail('Google linking must not send email') });
 
-    await service.requestGoogleLink('7', 'Bearer student-jwt');
-    assert.equal(sent[0].email, 'student@example.com');
-    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token({ email: 'other@example.com' }), sent[0].code), { status: 401 });
-    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token({ email_verified: false }), sent[0].code), { status: 401 });
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token({ email: 'other@example.com' })), { status: 401 });
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token({ email_verified: false })), { status: 401 });
     assert.equal(inserts.length, 0);
-    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token(), '000000' === sent[0].code ? '111111' : '000000'), { status: 401 });
-    assert.equal(inserts.length, 0);
-    await service.linkGoogle('7', 'Bearer student-jwt', token(), sent[0].code);
+    await service.linkGoogle('7', 'Bearer student-jwt', token());
     assert.deepEqual(inserts[0], { subject: 'google-user-1', userId: 7 });
-    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token(), sent[0].code), { status: 401 });
+    await assert.rejects(service.linkGoogle('7', 'Bearer student-jwt', token()), { status: 409 });
   } finally { globalThis.fetch = originalFetch; }
 });

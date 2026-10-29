@@ -3,6 +3,11 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { findById } from './find-by-id.js';
 
+export interface DeTaiReference {
+  MaDT: number;
+  TenDT: string;
+}
+
 @Injectable()
 export class DeTaiClient {
   private readonly url: string;
@@ -16,8 +21,8 @@ export class DeTaiClient {
       '/detai';
   }
 
-  findById(id: string | number, authorization?: string): Promise<unknown> {
+  findById(id: string | number, authorization?: string): Promise<DeTaiReference> {
     const url = `${this.url}/${encodeURIComponent(String(id))}`;
-    return findById(this.http, url, authorization);
+    return findById<DeTaiReference>(this.http, url, authorization);
   }
 }

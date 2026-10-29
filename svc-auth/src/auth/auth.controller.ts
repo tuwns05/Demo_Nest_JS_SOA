@@ -15,7 +15,7 @@ import { SignInResponse } from './dto/signIn.reponse.js';
 import { Public } from './decorators/public.decorator.js';
 import { CreateStudentAccountDto } from './dto/create-student-account.dto.js';
 import { GoogleCredentialDto } from './dto/google-credential.dto.js';
-import { AdminEmailDto, CompleteAdminRegistrationDto, CompleteGoogleLinkDto } from './dto/email-verification.dto.js';
+import { AdminEmailDto, CompleteAdminRegistrationDto } from './dto/email-verification.dto.js';
 import type { Request } from 'express';
 
 @Controller('auth')
@@ -63,16 +63,9 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @SetMetadata('allowed_roles', ['student'])
-  @Post('google/link/request-code')
-  requestGoogleLink(@Req() request: Request & { user?: { sub?: string } }) {
-    return this.authService.requestGoogleLink(String(request.user?.sub ?? ''), request.headers.authorization ?? '');
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @SetMetadata('allowed_roles', ['student'])
   @Post('google/link')
-  linkGoogle(@Req() request: Request & { user?: { sub?: string } }, @Body() dto: CompleteGoogleLinkDto) {
-    return this.authService.linkGoogle(String(request.user?.sub ?? ''), request.headers.authorization ?? '', dto.credential, dto.code);
+  linkGoogle(@Req() request: Request & { user?: { sub?: string } }, @Body() dto: GoogleCredentialDto) {
+    return this.authService.linkGoogle(String(request.user?.sub ?? ''), request.headers.authorization ?? '', dto.credential);
   }
 
   @Public()

@@ -8,8 +8,11 @@ if ($missing.Count -gt 0) {
 }
 foreach ($name in $backendNames) {
   $servicePath = (Join-Path $repoRoot $name).Replace("'", "''")
+  $clearServiceOverrides = if ($name -eq 'svc-auth') {
+    'Remove-Item Env:GOOGLE_CLIENT_ID -ErrorAction SilentlyContinue; '
+  } else { '' }
   Write-Host "Khởi động $name; cổng đọc từ cấu hình PORT của service."
-  Start-Process powershell -ArgumentList '-NoExit', '-Command', "Set-Location -LiteralPath '$servicePath'; `$Host.UI.RawUI.WindowTitle = '$name'; npm.cmd run start:dev"
+  Start-Process powershell -ArgumentList '-NoExit', '-Command', "$clearServiceOverrides`Set-Location -LiteralPath '$servicePath'; `$Host.UI.RawUI.WindowTitle = '$name'; npm.cmd run start:dev"
 }
 
 $frontendName = 'FE_Demo_SOA_AG'

@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsInt,
@@ -38,9 +38,19 @@ export class CreateDangKyDto {
   trangThai?: string | null;
 }
 
-export class UpdateDangKyDto extends PartialType(CreateDangKyDto, {
-  skipNullProperties: false,
-}) {}
+export class UpdateDangKyDto {
+  @ApiPropertyOptional({ example: '2026-10-09', nullable: true })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
+  ngayDangKy?: string | null;
+
+  @ApiPropertyOptional({ example: 'Chờ duyệt', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  trangThai?: string | null;
+}
 
 export class StudentDangKyDto {
   @ApiProperty({ example: 1 })

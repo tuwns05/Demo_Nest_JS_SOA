@@ -3,6 +3,11 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { findById } from './find-by-id.js';
 
+export interface SinhVienReference {
+  MaSV: string;
+  HoTen: string;
+}
+
 @Injectable()
 export class SinhVienClient {
   private readonly url: string;
@@ -16,8 +21,8 @@ export class SinhVienClient {
       '/sinhvien';
   }
 
-  findById(id: string | number, authorization?: string): Promise<unknown> {
+  findById(id: string | number, authorization?: string): Promise<SinhVienReference> {
     const url = `${this.url}/${encodeURIComponent(String(id))}`;
-    return findById(this.http, url, authorization);
+    return findById<SinhVienReference>(this.http, url, authorization);
   }
 }

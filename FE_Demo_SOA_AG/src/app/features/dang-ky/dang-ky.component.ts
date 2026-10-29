@@ -46,7 +46,7 @@ export class DangKyComponent implements OnInit {
     this.message.set('');
     this.loading.set(true);
     this.error.set('');
-    forkJoin([this.store.list(), this.students.list(), this.topics.list()])
+    this.store.list()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loading.set(false)),
@@ -89,7 +89,22 @@ export class DangKyComponent implements OnInit {
     this.form = this.emptyForm();
     this.error.set('');
     this.message.set('');
-    this.mode.set('create');
+    this.busy.set(true);
+    forkJoin([this.students.list(), this.topics.list()])
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: () => {
+          if (!this.students.students().length || !this.topics.items().length) {
+            this.error.set('Cần có sinh viên và đề tài trước khi tạo đăng ký.');
+            return;
+          }
+          this.mode.set('create');
+        },
+        error: (error) => this.error.set(apiError(error)),
+      });
   }
 
   open(item: DangKy, mode: 'edit' | 'detail') {
@@ -136,19 +151,23 @@ export class DangKyComponent implements OnInit {
   save() {
     const mode = this.mode();
     if (this.busy() || (mode !== 'create' && mode !== 'edit')) return;
-    if (!this.form.maSV || !this.form.maDT) {
+    if (mode === 'create' && (!this.form.maSV || !this.form.maDT)) {
       this.error.set('Vui lòng chọn sinh viên và đề tài.');
       return;
     }
-    const body: DangKyBody = {
-      maSV: this.form.maSV,
-      maDT: Number(this.form.maDT),
+    const changes: Pick<DangKyBody, 'ngayDangKy' | 'trangThai'> = {
       trangThai: this.form.trangThai.trim() || null,
     };
-    if (this.form.ngayDangKy) body.ngayDangKy = this.form.ngayDangKy;
-    else if (mode === 'edit') body.ngayDangKy = null;
+    if (this.form.ngayDangKy) changes.ngayDangKy = this.form.ngayDangKy;
+    else if (mode === 'edit') changes.ngayDangKy = null;
     const operation =
-      mode === 'create' ? this.store.create(body) : this.store.update(this.current()!.MaDK, body);
+      mode === 'create'
+        ? this.store.create({
+            maSV: this.form.maSV,
+            maDT: Number(this.form.maDT),
+            ...changes,
+          })
+        : this.store.update(this.current()!.MaDK, changes);
     this.busy.set(true);
     this.error.set('');
     operation
@@ -186,20 +205,6 @@ export class DangKyComponent implements OnInit {
         },
         error: (error) => this.error.set(apiError(error)),
       });
-  }
-
-  studentName(maSV: string) {
-    return (
-      this.students.students().find((item) => item.MaSV === maSV)?.HoTen ??
-      'Sinh viên không còn trong danh sách'
-    );
-  }
-
-  topicName(maDT: number) {
-    return (
-      this.topics.items().find((item) => Number(item.MaDT) === Number(maDT))?.TenDT ??
-      'Đề tài không còn trong danh sách'
-    );
   }
 
   private emptyForm() {

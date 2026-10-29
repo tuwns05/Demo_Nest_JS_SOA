@@ -28,7 +28,7 @@ export class AuthService {
       .update(`${purpose}\0${target}\0${email}\0${code}`).digest('hex');
   }
 
-  private async sendVerificationCode(purpose: 'admin_register' | 'google_link', target: string, email: string) {
+  private async sendVerificationCode(purpose: 'admin_register', target: string, email: string) {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const hash = this.codeHash(purpose, target, code, email);
     const existing = await this.databaseService.query(
@@ -66,7 +66,7 @@ export class AuthService {
     return { message: 'Nếu địa chỉ email hợp lệ, mã xác thực đã được gửi.' };
   }
 
-  private async consumeCode(purpose: 'admin_register' | 'google_link', target: string, code: string, email = '') {
+  private async consumeCode(purpose: 'admin_register', target: string, code: string, email = '') {
     const hash = this.codeHash(purpose, target, code, email);
     const result = await this.databaseService.query(
       `UPDATE dbo.EmailVerification
@@ -113,7 +113,7 @@ export class AuthService {
   private async studentEmail(authorization: string): Promise<string> {
     const base = this.config.get<string>('SERVICE_URL_SINHVIEN') ?? 'http://localhost:3001';
     try {
-      const response = await fetch(`${base.replace(/\/$/, '')}/sinh-vien/me`, {
+      const response = await fetch(`${base.replace(/\/$/, '')}/sinhvien/me`, {
         headers: { Authorization: authorization }, signal: AbortSignal.timeout(5000),
       });
       if (!response.ok) throw new Error('student profile unavailable');
@@ -131,7 +131,7 @@ export class AuthService {
     );
     const base = this.config.get<string>('SERVICE_URL_SINHVIEN') ?? 'http://localhost:3001';
     try {
-      const response = await fetch(`${base.replace(/\/$/, '')}/sinh-vien/${encodeURIComponent(maSV)}`, {
+      const response = await fetch(`${base.replace(/\/$/, '')}/sinhvien/${encodeURIComponent(maSV)}`, {
         headers: { Authorization: `Bearer ${serviceToken}` }, signal: AbortSignal.timeout(5000),
       });
       if (!response.ok) throw new Error('student profile unavailable');
@@ -141,12 +141,6 @@ export class AuthService {
     } catch {
       throw new ServiceUnavailableException('Không lấy được email trong hồ sơ sinh viên');
     }
-  }
-
-  async requestGoogleLink(userId: string, authorization: string) {
-    if (!/^\d+$/.test(userId)) throw new UnauthorizedException();
-    const email = await this.studentEmail(authorization);
-    return this.sendVerificationCode('google_link', userId, email);
   }
 
   googleClientId() {
@@ -224,14 +218,13 @@ export class AuthService {
     return { ...await this.issueToken(user), username: user.UserName };
   }
 
-  async linkGoogle(userId: string, authorization: string, credential: string, code: string) {
+  async linkGoogle(userId: string, authorization: string, credential: string) {
     const identity = await verifyGoogleIdentity(credential, this.config.getOrThrow<string>('GOOGLE_CLIENT_ID'));
     if (!/^\d+$/.test(userId)) throw new UnauthorizedException();
     const email = await this.studentEmail(authorization);
     if (identity.email !== email) {
       throw new UnauthorizedException('Email Google phải trùng với email trong hồ sơ sinh viên đã được Google xác minh');
     }
-    await this.consumeCode('google_link', userId, code, email);
     return this.insertGoogleLink(Number(userId), identity.subject);
   }
 

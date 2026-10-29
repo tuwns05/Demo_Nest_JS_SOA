@@ -2,7 +2,7 @@
 
 Xác thực: POST /auth/login công khai, GET /auth/health công khai trực tiếp, GET /auth/profile cần Bearer token. Đăng nhập dùng bcrypt và phát JWT.
 
-Đăng nhập quản trị nhận body `{ "user": "email", "password": "mật khẩu" }`. Trường `user` đối chiếu `dbo.User.UserName`, mật khẩu kiểm tra với bcrypt hash trong `dbo.User.Password`. Sinh viên mới liên kết Google bằng mã gửi tới email trong hồ sơ. JWT giữ `sub = IdUser`, `username = UserName`; sinh viên có thêm `maSV`. Xem `docs/EMAIL-VERIFICATION.md` để cấu hình SMTP và tạo bảng mã xác thực.
+Đăng nhập quản trị nhận body `{ "user": "email", "password": "mật khẩu" }`. Trường `user` đối chiếu `dbo.User.UserName`, mật khẩu kiểm tra với bcrypt hash trong `dbo.User.Password`. Sinh viên đã đăng nhập liên kết Google trực tiếp bằng email đã xác minh trùng hồ sơ, không cần OTP. JWT giữ `sub = IdUser`, `username = UserName`; sinh viên có thêm `maSV`. Xem `docs/EMAIL-VERIFICATION.md` để cấu hình SMTP cho đăng ký admin.
 
 ## Biến môi trường
 

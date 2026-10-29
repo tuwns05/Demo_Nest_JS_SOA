@@ -23,12 +23,13 @@ describe('Student portal', () => {
     backend.expectOne('/api/detai').flush([topic]);
     backend.expectOne('/api/dangky/me').flush([]);
     fixture.detectChanges();
+    backend.expectOne('/api/auth/google/config').flush({ clientId: '' });
     expect(fixture.nativeElement.textContent).toContain('Nguyễn Văn An');
     fixture.componentInstance.register(topic);
     const create = backend.expectOne('/api/dangky/me');
     expect(create.request.method).toBe('POST');
     expect(create.request.body).toEqual({ maDT: 1 });
-    create.flush({ message: 'created', data: { MaDK: 1, MaSV: 'SV001', MaDT: 1, NgayDangKy: '2026-10-21', TrangThai: 'Chờ duyệt' } });
+    create.flush({ message: 'created', data: { MaDK: 1, MaSV: 'SV001', HoTenSinhVien: 'Student', MaDT: 1, TenDeTai: 'Topic', NgayDangKy: '2026-10-21', TrangThai: 'Chờ duyệt' } });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Chờ duyệt');
     expect(fixture.nativeElement.textContent).toContain('Đã đăng ký');
@@ -43,8 +44,25 @@ describe('Student portal', () => {
     backend.expectOne('/api/detai').flush({}, { status: 503, statusText: 'Unavailable' });
     backend.expectOne('/api/dangky/me').flush([]);
     fixture.detectChanges();
+    backend.expectOne('/api/auth/google/config').flush({ clientId: '' });
     expect(fixture.nativeElement.textContent).toContain(student.HoTen);
     expect(fixture.componentInstance.topicsError()).toBeTruthy();
+  });
+
+  it('links Google directly without requesting an email code', () => {
+    const fixture = TestBed.createComponent(StudentComponent);
+    fixture.detectChanges();
+    backend.expectOne('/api/sinhvien/me').flush(student);
+    backend.expectOne('/api/detai').flush([]);
+    backend.expectOne('/api/dangky/me').flush([]);
+    fixture.componentInstance.linkGoogle('google-id-token');
+    const link = backend.expectOne('/api/auth/google/link');
+    expect(link.request.method).toBe('POST');
+    expect(link.request.body).toEqual({ credential: 'google-id-token' });
+    backend.expectNone('/api/auth/google/link/request-code');
+    link.flush({ message: 'Đã liên kết tài khoản Google' });
+    expect(fixture.componentInstance.linkCompleted()).toBe(true);
+    expect(fixture.componentInstance.linkBusy()).toBe(false);
   });
 
   it('shows a registration failure without reporting success', () => {

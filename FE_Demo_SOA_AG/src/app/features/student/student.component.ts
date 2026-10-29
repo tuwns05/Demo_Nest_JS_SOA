@@ -3,7 +3,6 @@ import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
-import { FormsModule } from '@angular/forms';
 import { AuthService } from '../auth/auth.service';
 import { GoogleButtonComponent } from '../auth/google-button.component';
 import { API_BASE, MutationResponse, apiError } from '../../core/api';
@@ -13,7 +12,7 @@ import { DangKy } from '../dang-ky/dang-ky.service';
 
 @Component({
   selector: 'app-student',
-  imports: [DatePipe, FormsModule, GoogleButtonComponent],
+  imports: [DatePipe, GoogleButtonComponent],
   templateUrl: './student.component.html',
   styleUrl: './student.component.css',
 })
@@ -35,8 +34,7 @@ export class StudentComponent implements OnInit {
   readonly linkMessage = signal('');
   readonly linkError = signal('');
   readonly linkBusy = signal(false);
-  readonly linkCodeSent = signal(false);
-  linkCode = '';
+  readonly linkCompleted = signal(false);
   readonly submitting = signal<number | null>(null);
   readonly registeredIds = computed(() => new Set(this.registrations().map(item => Number(item.MaDT))));
 
@@ -46,34 +44,17 @@ export class StudentComponent implements OnInit {
     this.loadRegistrations();
   }
 
-  requestGoogleLinkCode(): void {
-    if (this.linkBusy()) return;
+  linkGoogle(credential: string): void {
+    if (this.linkBusy() || this.linkCompleted() || !this.profile()?.Email) return;
     this.linkBusy.set(true);
     this.linkError.set('');
     this.linkMessage.set('');
-    this.auth.requestGoogleLinkCode()
-      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.linkBusy.set(false)))
-      .subscribe({
-        next: response => { this.linkCodeSent.set(true); this.linkMessage.set(response.message); },
-        error: error => this.linkError.set(apiError(error)),
-      });
-  }
-
-  linkGoogle(credential: string): void {
-    if (this.linkBusy()) return;
-    if (!/^[0-9]{6}$/.test(this.linkCode.trim())) {
-      this.linkError.set('Nhập mã xác thực gồm 6 chữ số.');
-      return;
-    }
-    this.linkBusy.set(true);
-    this.linkError.set('');
-    this.auth.linkGoogle(credential, this.linkCode.trim())
+    this.auth.linkGoogle(credential)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.linkBusy.set(false)))
       .subscribe({
         next: response => {
           this.linkMessage.set(response.message);
-          this.linkCode = '';
-          this.linkCodeSent.set(false);
+          this.linkCompleted.set(true);
         },
         error: error => this.linkError.set(apiError(error)),
       });

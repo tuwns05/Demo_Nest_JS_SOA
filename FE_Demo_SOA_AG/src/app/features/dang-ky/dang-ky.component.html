@@ -7,7 +7,7 @@
   <button
     class="button primary"
     (click)="openCreate()"
-    [disabled]="loading() || busy() || !students.students().length || !topics.items().length"
+    [disabled]="loading() || busy()"
   >
     ＋ Thêm đăng ký
   </button>
@@ -17,12 +17,6 @@
 }
 @if (error() && !mode()) {
   <p class="alert error" role="alert">{{ error() }}</p>
-}
-@if (!loading() && !error() && (!students.students().length || !topics.items().length)) {
-  <p class="notice">
-    Cần có sinh viên và đề tài trước khi tạo đăng ký. Thêm dữ liệu ở các trang Sinh viên và Đề tài
-    rồi làm mới danh sách.
-  </p>
 }
 <section class="panel">
   <form class="table-toolbar" (ngSubmit)="search()">
@@ -75,9 +69,9 @@
             <tr>
               <td>{{ item.MaDK }}</td>
               <td class="wrap-cell">
-                {{ item.MaSV }}<br /><span class="muted">{{ studentName(item.MaSV) }}</span>
+                {{ item.MaSV }}<br /><span class="muted">{{ item.HoTenSinhVien || 'Chưa có tên đã lưu' }}</span>
               </td>
-              <td class="wrap-cell">{{ item.MaDT }} — {{ topicName(item.MaDT) }}</td>
+              <td class="wrap-cell">{{ item.MaDT }} — {{ item.TenDeTai || 'Chưa có tên đã lưu' }}</td>
               <td>{{ item.NgayDangKy?.slice(0, 10) || 'Chưa có' }}</td>
               <td>{{ item.TrangThai || 'Chưa có' }}</td>
               <td>
@@ -165,11 +159,11 @@
           </div>
           <div>
             <dt>Sinh viên</dt>
-            <dd>{{ current()?.MaSV }} — {{ studentName(current()!.MaSV) }}</dd>
+            <dd>{{ current()?.MaSV }} — {{ current()?.HoTenSinhVien || 'Chưa có tên đã lưu' }}</dd>
           </div>
           <div>
             <dt>Đề tài</dt>
-            <dd>{{ current()?.MaDT }} — {{ topicName(current()!.MaDT) }}</dd>
+            <dd>{{ current()?.MaDT }} — {{ current()?.TenDeTai || 'Chưa có tên đã lưu' }}</dd>
           </div>
           <div>
             <dt>Ngày đăng ký</dt>
@@ -190,8 +184,11 @@
             <div class="form-grid">
               <div class="span-two">
                 <label for="maSV">Sinh viên *</label>
-                <select id="maSV" name="maSV" [(ngModel)]="form.maSV" required>
+                <select id="maSV" name="maSV" [(ngModel)]="form.maSV" required [disabled]="mode() === 'edit'">
                   <option value="">Chọn sinh viên</option>
+                  @if (mode() === 'edit' && current()) {
+                    <option [value]="current()!.MaSV">{{ current()!.MaSV }} — {{ current()!.HoTenSinhVien }}</option>
+                  }
                   @for (student of students.students(); track student.MaSV) {
                     <option [value]="student.MaSV">{{ student.MaSV }} — {{ student.HoTen }}</option>
                   }
@@ -199,8 +196,11 @@
               </div>
               <div class="span-two">
                 <label for="maDT">Đề tài *</label>
-                <select id="maDT" name="maDT" [(ngModel)]="form.maDT" required>
+                <select id="maDT" name="maDT" [(ngModel)]="form.maDT" required [disabled]="mode() === 'edit'">
                   <option [ngValue]="null">Chọn đề tài</option>
+                  @if (mode() === 'edit' && current()) {
+                    <option [ngValue]="+current()!.MaDT">{{ current()!.MaDT }} — {{ current()!.TenDeTai }}</option>
+                  }
                   @for (topic of topics.items(); track topic.MaDT) {
                     <option [ngValue]="+topic.MaDT">{{ topic.MaDT }} — {{ topic.TenDT }}</option>
                   }

@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, Length, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsString, Length, MaxLength, MinLength } from 'class-validator';
 
 export class AdminEmailDto {
   @IsEmail()
@@ -15,18 +15,5 @@ export class CompleteAdminRegistrationDto extends AdminEmailDto {
   @MinLength(8)
   @MaxLength(128)
   password: string;
-}
-
-export class VerificationCodeDto {
-  @IsString()
-  @Length(6, 6)
-  code: string;
-}
-
-export class CompleteGoogleLinkDto extends VerificationCodeDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(8192)
-  credential: string;
 }
 

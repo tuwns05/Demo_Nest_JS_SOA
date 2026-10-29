@@ -1,4 +1,4 @@
-# Đăng ký admin và liên kết Google bằng mã email
+# Đăng ký admin bằng mã email
 
 ## Chuẩn bị
 
@@ -20,8 +20,8 @@ SMTP_FROM=your-smtp-address
 ## Sử dụng
 
 - Trang đăng nhập có **Đăng ký bằng email**. Người dùng nhập email, nhận mã, rồi nhập mã và mật khẩu tối thiểu 8 ký tự. Khi xác thực thành công, hệ thống tạo tài khoản `admin`. Đây là luồng công khai dành cho bản demo: bất kỳ ai sở hữu email đều có thể đăng ký admin.
-- Khi thêm sinh viên, admin đặt mật khẩu ban đầu ít nhất 12 ký tự và chuyển riêng cho sinh viên. Sinh viên đăng nhập bằng mã sinh viên và mật khẩu đó, vào **trang cá nhân sinh viên**, bấm **Gửi mã xác thực**, nhập mã nhận tại email trong hồ sơ rồi chọn tài khoản Google có cùng email đã xác minh. Từ lần sau có thể đăng nhập bằng Google. Đổi email hồ sơ sau khi gửi mã sẽ làm mã cũ không còn hợp lệ. Tài khoản cũ chưa tự động đổi mật khẩu.
+- Khi thêm sinh viên, admin đặt mật khẩu ban đầu ít nhất 12 ký tự và chuyển riêng cho sinh viên. Sinh viên đăng nhập bằng mã sinh viên và mật khẩu đó, vào **trang cá nhân sinh viên**, chọn tài khoản Google có email đã xác minh trùng hồ sơ để liên kết trực tiếp. Không gửi OTP cho liên kết Google. Từ lần sau có thể đăng nhập bằng Google.
 
-API công khai: `POST /auth/register/admin/request-code` nhận `{ "email": "..." }`; `POST /auth/register/admin/complete` nhận `{ "email": "...", "code": "123456", "password": "..." }`. API sinh viên đã đăng nhập: `POST /auth/google/link/request-code` và `POST /auth/google/link` nhận `{ "credential": "...", "code": "123456" }`.
+API công khai: `POST /auth/register/admin/request-code` nhận `{ "email": "..." }`; `POST /auth/register/admin/complete` nhận `{ "email": "...", "code": "123456", "password": "..." }`. API sinh viên đã đăng nhập: `POST /auth/google/link` nhận `{ "credential": "..." }`.
 
 Vẫn cần chạy `db/separate/05-google-login.sql` và cấu hình `GOOGLE_CLIENT_ID` như trong `docs/GOOGLE-LOGIN.md`.

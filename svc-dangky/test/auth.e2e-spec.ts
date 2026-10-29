@@ -143,7 +143,7 @@ describe('dangky authentication (HTTP)', () => {
     await request(app.getHttpServer())
       .patch('/dangky/1')
       .set('Authorization', authorization)
-      .send({ maSV: 'SV001', maDT: 1 })
+      .send({ trangThai: 'Đã duyệt' })
       .expect(200);
     await request(app.getHttpServer())
       .delete('/dangky/1')
@@ -155,8 +155,7 @@ describe('dangky authentication (HTTP)', () => {
     );
     expect(service.update).toHaveBeenCalledWith(
       1,
-      expect.objectContaining({ maSV: 'SV001', maDT: 1 }),
-      authorization,
+      expect.objectContaining({ trangThai: 'Đã duyệt' }),
     );
   });
 
